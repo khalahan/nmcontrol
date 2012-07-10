@@ -1,0 +1,112 @@
+#!/usr/bin/python2.6
+
+import os
+import sys
+import inspect
+import optparse
+import ConfigParser
+
+app = {}
+def main():
+	# init app config
+	global app
+	app['conf'] = ConfigParser.SafeConfigParser()
+	app['path'] = {}
+	app['path']['app'] = os.path.dirname(inspect.getfile(inspect.currentframe())) + os.sep
+	app['path']['conf'] = app['path']['app'] + os.sep + 'conf' + os.sep
+
+	# add import path
+	sys.path.append(app['path']['app'] + 'lib')
+	sys.path.append(app['path']['app'] + 'plugin')
+
+	import console
+	(cWidth, cHeight) = console.getTerminalSize()
+	fmt=optparse.IndentedHelpFormatter(indent_increment=4, max_help_position=40, width=cWidth-3, short_first=1 )
+	app['parser'] = optparse.OptionParser(formatter=fmt,description='nmcontrol 0.4')
+	app['debug'] = False
+
+	# debug mode
+	for argv in sys.argv:
+		if argv in ['--debug=1','--main.debug=1']:
+			app['debug'] = True
+
+	# load plugins
+	import re
+	import dircache
+	app['plugins'] = {}
+	plugins = dircache.listdir('plugin')
+	# set main plugin in first pos
+	plugins.remove('pluginMain.py')
+	plugins.insert(0, 'pluginMain.py')
+	for plugin in dircache.listdir('plugin'):
+		if re.match("^plugin.*.py$", plugin):
+			plugin = re.sub(r'\.py$', '', plugin)
+			pluginname = re.sub(r'^plugin', '', plugin).lower()
+			exec("import " + plugin)
+			try:
+				exec("p = " + plugin + "." + plugin + "(app)")
+				exec("app['plugins'][p.name] = p")
+			except AttributeError as e:
+				if app['debug']: print 'Plugin "' + plugin + '" has no', plugin + '() class'
+
+	
+	# parse command line options
+	(options, app['args']) = app['parser'].parse_args()
+	#print "Cmdline options:", options
+	#print "Cmdline args:", app['args']
+	for option, value in vars(options).items():
+		if value is not None:
+			tmp = option.split('.')
+			if len(tmp) == 1:
+				app['plugins']['main'].conf[tmp[0]] = value
+			else:
+				plugin = tmp[0]
+				tmp.remove(plugin)
+				app['plugins'][plugin].conf['.'.join(tmp)] = value
+
+	###### Act as client : send rpc request ######
+	if len(app['args']) > 0 and app['args'][0] != 'start':
+		error, data = app['plugins']['rpc'].pSend(app['args'][:])
+		if error is True or data['error'] is True:
+			print "ERROR:", data
+		else:
+			if data['result']['reply'] in [None, True]:
+				print 'ok'
+			else:
+				print data['result']['reply']
+			if app['debug'] and data['result']['prints']: print "LOG:", data['result']['prints']
+		if app['args'][0] != 'restart':
+			return
+
+	# daemon mode
+	if int(app['plugins']['main'].conf['daemon']) == 1:
+		print "Entering background mode"
+		import daemonize
+		retCode = daemonize.createDaemon()
+	
+	###### Act as server : start plugins ######
+	for plugin in app['plugins']:
+		if int(app['plugins'][plugin].conf['start']) == 1:
+			#app['plugins'][plugin].daemon=True
+			if app['plugins'][plugin].running is False:
+				app['plugins'][plugin].start()
+
+	# if not a daemon, stay there to catch CTRL + C
+	if int(app['plugins']['main'].conf['daemon']) == 0:
+		if app['debug']: print "Keep program running"
+		import time
+		try:
+			while app['plugins']['main'].running:
+				time.sleep(2)
+		except (KeyboardInterrupt, SystemExit):
+			print '\n! Received keyboard interrupt, quitting threads.\n'
+			app['plugins']['main'].stop()
+
+	if app['debug']: print "Program ended"
+	sys.exit()
+
+
+
+if __name__=='__main__':
+    main()
+
