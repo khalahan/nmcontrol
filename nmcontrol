@@ -12,7 +12,7 @@ def main():
 	global app
 	app['conf'] = ConfigParser.SafeConfigParser()
 	app['path'] = {}
-	app['path']['app'] = os.path.dirname(inspect.getfile(inspect.currentframe())) + os.sep
+	app['path']['app'] = os.path.dirname(os.path.realpath(__file__)) + os.sep
 	app['path']['conf'] = app['path']['app'] + os.sep + 'conf' + os.sep
 
 	# add import path
