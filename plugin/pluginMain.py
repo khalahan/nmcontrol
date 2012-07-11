@@ -1,9 +1,10 @@
 import plugin
+import platform
 
 class pluginMain(plugin.PluginThread):
 	name = 'main'
 	options = {
-		'start':	['Launch at startup', 1],
+		'start':	['Launch at startup', (1, 0)[platform.system() == 'Windows']],
 		'debug':	['Debug mode', 0, '<0|1>'],
 		'daemon':	['Background mode', 1, '<0|1>'], 
 		#'plugins':	['auto started plugins', 'main,data,rpc'],
