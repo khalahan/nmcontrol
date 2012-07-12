@@ -48,6 +48,7 @@ class PluginThread(threading.Thread):
 		return True
 
 	def stop(self, arg = []):
+		if not self.running: return
 		if self.app['debug']: print "Plugin %s parent stopping" %(self.name)
 		self.running = False
 		return self.pStop()
