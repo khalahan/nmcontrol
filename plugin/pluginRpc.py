@@ -15,7 +15,6 @@ class pluginRpc(plugin.PluginThread):
 			return "Plugin " + self.name + " running"
 
 	def pStart(self):
-		print "Plugin start :", self.name
 		self.threads = []
 		self.s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 		self.s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
@@ -44,7 +43,7 @@ class pluginRpc(plugin.PluginThread):
 	def pStop(self):
 		if self.app['debug']: print "Plugin stop :", self.name
 		self.pSend(['exit'])
-		print "Plugin stopped :", self.name
+		print "Plugin %s stopped" %(self.name)
 
 	def pSend(self, args):
 		if self.app['debug']: print "RPC - sending cmd :", args
@@ -153,7 +152,7 @@ class rpcClientThread(threading.Thread):
 		# capture stdout
 		capture = StringIO.StringIO()
 		#sys.stdout = capture
-
+	
 		try:
 			result = Cmd(args)
 		except AttributeError, e:
