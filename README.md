@@ -1,5 +1,3 @@
-nmcontrol 0.4
-
 Status
 ======
 

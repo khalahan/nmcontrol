@@ -22,7 +22,7 @@ def main():
 	import console
 	(cWidth, cHeight) = console.getTerminalSize()
 	fmt=optparse.IndentedHelpFormatter(indent_increment=4, max_help_position=40, width=cWidth-3, short_first=1 )
-	app['parser'] = optparse.OptionParser(formatter=fmt,description='nmcontrol 0.4')
+	app['parser'] = optparse.OptionParser(formatter=fmt,description='nmcontrol 0.5')
 	app['debug'] = False
 
 	# debug mode
