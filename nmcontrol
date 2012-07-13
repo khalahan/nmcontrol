@@ -1,4 +1,6 @@
-#!/usr/bin/python2.6
+#!/usr/bin/python
+
+__version__ = '0.6'
 
 import os
 import sys
@@ -22,7 +24,7 @@ def main():
 	import console
 	(cWidth, cHeight) = console.getTerminalSize()
 	fmt=optparse.IndentedHelpFormatter(indent_increment=4, max_help_position=40, width=cWidth-3, short_first=1 )
-	app['parser'] = optparse.OptionParser(formatter=fmt,description='nmcontrol 0.5')
+	app['parser'] = optparse.OptionParser(formatter=fmt,description='nmcontrol %s' % __version__)
 	app['debug'] = False
 
 	# debug mode
