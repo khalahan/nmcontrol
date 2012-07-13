@@ -94,6 +94,9 @@ class Source(object):
 			#nswer = struct.pack("!H", int(preference))
 			#answer += labels2str(domain.split("."))
 			reqtype = "MX"
+		elif qtype == 28:
+			#answer = struct.pack("!I", ipstr2int(value))
+			reqtype = "AAAA"
 		else : reqtype = None
 		if domain.endswith(".bit") :
 			response = listdns.lookup(self.sp, {"query":query, "domain":domain, "qtype":qtype, "qclass":qclass, "src_addr":src_addr})
@@ -130,7 +133,6 @@ class Source(object):
 				#return self.get_response(query, domain, 5, qclass, src_addr)
 		else:
 			answers = self.reqobj.req(name=domain, qtype=qtype).answers
-			#print answers
 			results = []
 			for response in answers :
 				tempresults = {"qtype":response["type"], "qclass":response["class"], "ttl":response["ttl"]}
@@ -146,6 +148,11 @@ class Source(object):
 					tempresult = struct.pack("!H", response["data"][0])
 					tempresult += labels2str(response["data"][1].split("."))
 					tempresults["rdata"] = tempresult
+				elif response["type"] == 28 :
+					if answers == [] :
+						return self.get_response(query, domain, 5, qclass, src_addr)
+					#tempresults["rdata"] = struct.pack("!I", ipstr2int(response["data"]))
+					tempresults["rdata"] = response["data"]
 				#else : return 3, []
 				results.append(tempresults)
 			return 0, results
