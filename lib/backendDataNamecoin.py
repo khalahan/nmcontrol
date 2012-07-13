@@ -32,7 +32,7 @@ class backendData():
 
 	def getAllNames(self):
 		datas = {}
-		error, data = self._rpcSend(["name_filter"])
+		error, data = self._rpcSend(["name_filter", self.app['plugins']['data'].conf['name_filter']])
 		for name in data:
 			datas[name['name']] = name
 		return error, datas

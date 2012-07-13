@@ -7,7 +7,6 @@ import backendDataNamecoin
 
 class pluginData(plugin.PluginThread):
 	name = 'data'
-	#depends = ['datanamecoin']
 	options = [
 		{'start':			['launch at startup', 1]},
 		{'import.mode':		['Import data at launch', 'none', '<none|all>']},
@@ -36,6 +35,7 @@ class pluginData(plugin.PluginThread):
 	export = None
 
 	def pLoadconfig(self):
+		# convert string interval to a number of seconds
 		for key, value in self.conf.items():
 			if '.freq' in key:
 				if value[-1] == 's':
@@ -52,6 +52,16 @@ class pluginData(plugin.PluginThread):
 			return "Plugin " + self.name + " running (" + str(len(self.data)) + " names)"
 
 	def pStart(self):
+		# build filter for namespaces
+		namespaces = []
+		self.conf['name_filter'] = ''
+		for plugin in self.app['plugins']:
+			if self.app['plugins'][plugin].conf['start'] == 1:
+				if hasattr(self.app['plugins'][plugin], 'namespaces'):
+					namespaces.extend(self.app['plugins'][plugin].namespaces)
+		if len(namespaces) > 0:
+			self.conf['name_filter'] = '^' + '|'.join(namespaces) + '/'
+
 		# load import backend
 		if self.conf['import.mode'] == 'all':
 			if self.app['debug']: print "Plugin Data : loading...",

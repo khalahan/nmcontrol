@@ -4,11 +4,12 @@ import dnsServer
 class pluginServiceDNS(plugin.PluginThread):
 	name = 'dns'
 	options = {
-		'start':	['launch at startup', 1],
-		'host':		['listen on ip', '127.0.0.1'],
-		'port':		['listen on port', 53],
-		'resolver':	['forward standard requests to', '8.8.8.8,8.8.4.4']
+		'start':	['Launch at startup', 1],
+		'host':		['Listen on ip', '127.0.0.1'],
+		'port':		['Listen on port', 53],
+		'resolver':	['Forward standard requests to', '8.8.8.8,8.8.4.4'],
 	}
+	namespaces = ['d']
 	srv = None
 
 	def pStart(self):
