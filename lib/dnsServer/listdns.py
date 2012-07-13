@@ -1,7 +1,3 @@
-#from jsonrpc import ServiceProxy
-#__import__('rpcClient', globals(), locals(), [], 1)
-import sys, os
-sys.path.append('/home/khal/sources/nmcontrol/lib/')
 import DNS
 import json, base64, types, traceback
 
