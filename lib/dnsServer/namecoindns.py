@@ -9,13 +9,8 @@ from utils import *
 
 class Source(object):
 	def __init__(self, app):
-		#self._answers = {}
-		#self._filename = filename
-		#self._parse_file()
-		conf = app['plugins']['dns'].conf
-		servers = conf['resolver'].split(',')
-		server = servers[random.randrange(0, len(servers)-1)]
-		self.reqobj = DNS.Request(server=server)
+		self.servers = app['plugins']['dns'].conf['resolver'].split(',')
+		self.reqobj = DNS.Request()
 		#jsonfile = open("config.json", "r")
 		#data = json.loads(jsonfile.read())
 		#jsonfile.close()
@@ -24,7 +19,7 @@ class Source(object):
 		#password = str(data[u"password"])
 		#self.sp = ServiceProxy("http://%(user)s:%(passwd)s@127.0.0.1:%(port)d" % dict(user=username, passwd=password, port=port))
 		#elf.sp = rpcClient.rpcClientNamecoin('127.0.0.1', port, username, password)
-		self.sp = app['plugins']['data']
+		self.sp = app['plugins']['domain']
 
 #	def _parse_file(self):
 #		f = open(self._filename, "r")
@@ -99,7 +94,8 @@ class Source(object):
 			reqtype = "AAAA"
 		else : reqtype = None
 		if domain.endswith(".bit") :
-			response = listdns.lookup(self.sp, {"query":query, "domain":domain, "qtype":qtype, "qclass":qclass, "src_addr":src_addr})
+			#response = listdns.lookup(self.sp, {"query":query, "domain":domain, "qtype":qtype, "qclass":qclass, "src_addr":src_addr})
+			response = self.sp.lookup({"query":query, "domain":domain, "qtype":qtype, "qclass":qclass, "src_addr":src_addr})
 			results = []
 			if type(response) == types.DictType :
 				tempresults = {"qtype":response["type"], "qclass":response["class"], "ttl":response["ttl"]}
@@ -115,6 +111,8 @@ class Source(object):
 					tempresult = struct.pack("!H", response["data"][0])
 					tempresult += labels2str(response["data"][1].split("."))
 					tempresults["rdata"] = tempresult
+				elif response["type"] == 28 :
+					tempresults["rdata"] = response["data"]
 				#else : return 3, []
 				results.append(tempresults)
 				return 0, results
@@ -132,7 +130,8 @@ class Source(object):
 				# if they asked for an A record and we didn't find one, check for a CNAME
 				#return self.get_response(query, domain, 5, qclass, src_addr)
 		else:
-			answers = self.reqobj.req(name=domain, qtype=qtype).answers
+			server = self.servers[random.randrange(0, len(self.servers)-1)]
+			answers = self.reqobj.req(name=domain, qtype=qtype, server=server).answers
 			results = []
 			for response in answers :
 				tempresults = {"qtype":response["type"], "qclass":response["class"], "ttl":response["ttl"]}

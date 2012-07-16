@@ -10,14 +10,13 @@ def lookup(sp, qdict) :
 		host = domain.split(".")[0]
 		subdomain = ""
 	#rawlist = json.dumps(rawjson)
-	#item = sp.name_scan("d/"+host, 1)[0]
 	#error, item = sp.sendJson(['name_show', "d/"+host])
 	item = sp.getData(['data', ['getData', 'd/'+host]])
 	try:
 		item = json.loads(item)
 	except:
+		if self.app['debug']: traceback.print_exc()
 		return
-		traceback.print_exc()
 	
 	if str(item[u"name"]) == "d/" +  host :
 		try :

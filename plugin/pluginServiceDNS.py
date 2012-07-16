@@ -9,18 +9,19 @@ class pluginServiceDNS(plugin.PluginThread):
 		'port':		['Listen on port', 53],
 		'resolver':	['Forward standard requests to', '8.8.8.8,8.8.4.4'],
 	}
-	namespaces = ['d']
 	srv = None
 
 	def pStart(self):
 		if self.srv is None:
-			self.srv = dnsServer.DnsServer()
-			self.srv.start(self.app)
+			self.srv = dnsServer.DnsServer(self.app)
+			self.srv.start()
+		if self.app['debug']: print "Plugin %s started" %(self.name)
 		return True
 	
 	def pStop(self):
 		if self.srv is not None:
 			self.srv.stop()
-		print "Plugin %s stopped" %(self.name)
+			self.srv = None
+		if self.app['debug']: print "Plugin %s stopped" %(self.name)
 		return True
 

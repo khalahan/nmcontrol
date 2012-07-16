@@ -33,24 +33,36 @@ import ConfigParser
 import signal
 import getopt
 import traceback
+import threading
 
 from utils import *
 
 class DnsError(Exception):
 	pass
 
-class DnsServer():
+class DnsServer(threading.Thread):
+	daemon = True;
 	running = True
 	app = None
 	udps = None
 
-	def start(self, app):
+	def __init__(self, app):
 		self.app = app
+		threading.Thread.__init__(self)
+	
+	def run(self):
+		self.serve()
+
+	def serve(self):
 		self.udps = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+		self.udps.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
 		udps = self.udps
-		listen_host = app['plugins']['dns'].conf['host']
-		listen_port = int(app['plugins']['dns'].conf['port'])
-		udps.bind((listen_host, listen_port))
+		listen_host = self.app['plugins']['dns'].conf['host']
+		listen_port = int(self.app['plugins']['dns'].conf['port'])
+		try:
+			udps.bind((listen_host, listen_port))
+		except socket.error as e:
+			print "ERROR: Unable to start DNS server (%s)" % e
 		#ns_resource_records, ar_resource_records = compute_name_server_resources(_name_servers)
 		ns_resource_records = ar_resource_records = []
 		while self.running:
@@ -71,7 +83,7 @@ class DnsServer():
 				question = map(lambda x: x.lower(), question)
 				found = False
 				source_module = __import__("namecoindns", globals(), locals(), [])
-				source_instance = source_module.Source(app)
+				source_instance = source_module.Source(self.app)
 				for config in [True]:
 					#if question[1:] == config['domain']:
 						#query = question[0]
@@ -94,9 +106,9 @@ class DnsServer():
 					exception_rcode = 3
 					raise Exception("query is not for our domain: %s" % ".".join(question))
 			except:
+				if self.app['debug']: traceback.print_exc()
 				if not self.running:
 					continue
-				traceback.print_exc()
 				if qid:
 					if exception_rcode is None:
 						exception_rcode = 2
