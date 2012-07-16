@@ -9,6 +9,7 @@ import inspect
 import json
 
 class PluginThread(threading.Thread):
+	daemon = True
 	app = None
 	name = None
 	desc = None
@@ -55,7 +56,7 @@ class PluginThread(threading.Thread):
 
 	def pStop(self, arg = []):
 		if self.app['debug']: print "Plugin %s parent stop" %(self.name)
-		time.sleep(0)
+		print "Plugin %s stopped" %(self.name)
 		return True
 
 	def status(self, arg = []):

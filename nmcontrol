@@ -54,8 +54,8 @@ def main():
 	
 	# parse command line options
 	(options, app['args']) = app['parser'].parse_args()
-	#print "Cmdline options:", options
-	#print "Cmdline args:", app['args']
+	if app['debug']: print "Cmdline options:", options
+	if app['debug']: print "Cmdline args:", app['args']
 	for option, value in vars(options).items():
 		if value is not None:
 			tmp = option.split('.')
@@ -85,31 +85,26 @@ def main():
 		print "Entering background mode"
 		import daemonize
 		retCode = daemonize.createDaemon()
-	
+
 	###### Act as server : start plugins ######
 	plugins_started = []
 	for plugin in app['plugins']:
-		if int(app['plugins'][plugin].conf['start']) == 1:
-			#app['plugins'][plugin].daemon=True
+		if int(app['plugins'][plugin].conf['start']) == 1 and plugin not in ['rpc','main']:
+			# exit immediatly when main is stopped, unless in debug mode
+			app['plugins'][plugin].daemon=True
 			if app['plugins'][plugin].running is False:
 				app['plugins'][plugin].start()
 				plugins_started.append(app['plugins'][plugin].name)
 	print "Plugin started :", ', '.join(plugins_started)
 
-	# if not a daemon, stay there to catch CTRL + C
-	if int(app['plugins']['main'].conf['daemon']) == 0:
-		if app['debug']: print "Keep program running"
-		import time
-		try:
-			while app['plugins']['main'].running:
-				time.sleep(2)
-		except (KeyboardInterrupt, SystemExit):
-			print '\n! Received keyboard interrupt, quitting threads.\n'
-			app['plugins']['main'].stop()
+	# stay there to catch CTRL + C and not exit when in daemon mode
+	try:
+		app['plugins']['main'].start2()
+	except (KeyboardInterrupt, SystemExit):
+		print '\n! Received keyboard interrupt, quitting threads.\n'
 
-	if app['debug']: print "Program ended"
-	sys.exit()
-
+	# stop main program
+	app['plugins']['main'].stop()
 
 
 if __name__=='__main__':

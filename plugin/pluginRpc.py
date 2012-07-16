@@ -1,6 +1,6 @@
 import plugin
 import rpcClient
-import socket, json, threading, StringIO, sys, time
+import socket, json, threading, StringIO, sys, time, traceback
 
 class pluginRpc(plugin.PluginThread):
 	name = 'rpc'
@@ -28,17 +28,17 @@ class pluginRpc(plugin.PluginThread):
 					self.threads.append(c)
 				except Exception as e:
 					if self.app['debug']: print "except:", e
-
+		except KeyboardInterrupt:
+			pass
 		except:
 			print "nmc-manager: unable to listen on port"
+			if self.app['debug']: traceback.print_exc()
 
 		# close all threads
-		time.sleep(1)
 		if self.app['debug']: print "RPC stop listening"
 		self.s.close()
 		for c in self.threads:
 			c.join()
-		self.app['plugins']['main'].stop()
 
 	def pStop(self):
 		if self.app['debug']: print "Plugin stop :", self.name
@@ -127,10 +127,15 @@ class rpcClientThread(threading.Thread):
 
 		if plugin not in self.app['plugins']:
 			return (True, 'Plugin "' + plugin + '" not allowed')
-		if not self.app['plugins'][plugin].running:
+		if not self.app['plugins'][plugin].running and params[0] != 'start':
 			return (True, 'Plugin "' + plugin + '" not started')
 
 		if params[0] == 'start': params[0] = 'start2'
+
+		# reply before being blocked by non threaded start
+		# TODO : recreate thread for the start command and delete when stop
+		if not self.app['plugins'][plugin].running and params[0] == 'start2':
+			self.client.send('{"result":'+json.dumps({'reply':True, 'prints':'Restarting '+plugin+''})+',"error":'+json.dumps(None)+',"id":1}');
 
 		# reply before closing connection
 		if plugin == 'rpc' and params[0] == 'restart':
@@ -156,8 +161,10 @@ class rpcClientThread(threading.Thread):
 		try:
 			result = Cmd(args)
 		except AttributeError, e:
+			if self.app['debug']: traceback.print_exc()
 			return (True, 'Method "' + params[0] + '" not supported by plugin "' + plugin + '"')
 		except Exception, e:
+			if self.app['debug']: traceback.print_exc()
 			return (True, 'Exception : ' + str(e))
 
 		# restore stdout
