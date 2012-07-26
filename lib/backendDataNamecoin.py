@@ -1,9 +1,9 @@
+from common import *
 import rpcClient
 import ConfigParser, StringIO
 
 class backendData():
-	def __init__(self, app, conf):
-		self.app = app
+	def __init__(self, conf):
 		self.conf = conf
 
 	rpc = None
@@ -32,7 +32,7 @@ class backendData():
 
 	def getAllNames(self):
 		datas = {}
-		error, data = self._rpcSend(["name_filter", self.app['plugins']['data'].conf['name_filter']])
+		error, data = self._rpcSend(["name_filter", app['plugins']['data'].conf['name_filter']])
 		for name in data:
 			datas[name['name']] = name
 		return error, datas
@@ -41,7 +41,7 @@ class backendData():
 		return self._rpcSend(["name_show", name])
 	
 	def _rpcSend(self, rpcCmd):
-		if self.app['debug']: print "BackendDataNamecoin:", rpcCmd
+		if app['debug']: print "BackendDataNamecoin:", rpcCmd
 		if self.rpc is None:
 			self._loadRPCConfig()
 		return self.rpc.sendJson(rpcCmd)

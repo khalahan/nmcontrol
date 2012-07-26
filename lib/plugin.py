@@ -1,3 +1,4 @@
+from common import *
 import threading
 import time
 import os
@@ -10,52 +11,60 @@ import json
 
 class PluginThread(threading.Thread):
 	daemon = True
-	app = None
 	name = None
+	mode = None
 	desc = None
 	running = False
 	options = {}
 	helps = {}
-	depends = []
+	depends = {}
+	services = {}
 	#version = None
 
-	def __init__(self, app):
+	def __init__(self, mode = 'plugin'):
 		if self.name is None:
 			raise Exception(str(self.__class__) + " : name not defined")
-		self.app = app
-		self.nameconf = 'plugin-' + self.name + '.conf'
-		self.nameclass = 'plugin' + self.name.capitalize()
+		self.mode = mode
+		self.nameconf = self.mode + '-' + self.name + '.conf'
+		self.nameclass = self.mode + self.name.capitalize()
 		self.parser = app['parser']
 		self.conf = {}
 		self._loadconfig()
 		threading.Thread.__init__(self)
+
+	def start(self):
+		threading.Thread.start(self)
 
 	def run(self):
 		if self.running: return
 		self.start2()
 
 	def start2(self, arg = []):
-		if self.app['debug']: print "Plugin %s parent starting" %(self.name)
+		if app['debug']: print "Plugin %s parent starting" %(self.name)
 		self.running = True
 		# start depends
 		if len(self.depends) > 0:
-			for dep in self.depends:
-				self.app['plugins'][dep].start()
+			if 'plugins' in self.depends:
+				for dep in self.depends['plugins']:
+					app['plugins'][dep].start()
+			if 'services' in self.depends:
+				for dep in self.depends['services']:
+					app['services'][dep].start()
 		return self.pStart()
 
 	def pStart(self, arg = []):
-		if self.app['debug']: print "Plugin %s parent start" %(self.name)
+		if app['debug']: print "Plugin %s parent start" %(self.name)
 		#time.sleep(1)
 		return True
 
 	def stop(self, arg = []):
 		if not self.running: return
-		if self.app['debug']: print "Plugin %s parent stopping" %(self.name)
+		if app['debug']: print "Plugin %s parent stopping" %(self.name)
 		self.running = False
 		return self.pStop()
 
 	def pStop(self, arg = []):
-		if self.app['debug']: print "Plugin %s parent stop" %(self.name)
+		if app['debug']: print "Plugin %s parent stop" %(self.name)
 		print "Plugin %s stopped" %(self.name)
 		return True
 
@@ -67,20 +76,20 @@ class PluginThread(threading.Thread):
 			return "Plugin " + self.name + " running"
 
 	def reload(self, arg = []):
-		if self.app['debug']: print "Plugin %s parent reloading" %(self.name)
+		if app['debug']: print "Plugin %s parent reloading" %(self.name)
 		return self.pReload()
 	
 	def pReload(self, arg = []):
-		if self.app['debug']: print "Plugin %s parent reload" %(self.name)
+		if app['debug']: print "Plugin %s parent reload" %(self.name)
 		self.loadconfig()
 		return True
 
 	def restart(self, arg = []):
-		if self.app['debug']: print "Plugin %s parent restarting" %(self.name)
+		if app['debug']: print "Plugin %s parent restarting" %(self.name)
 		return self.pRestart()
 
 	def pRestart(self, arg = []):
-		if self.app['debug']: print "Plugin %s parent restart" %(self.name)
+		if app['debug']: print "Plugin %s parent restart" %(self.name)
 		self.stop()
 		self.start2()
 		return True
@@ -91,15 +100,15 @@ class PluginThread(threading.Thread):
 	def pHelp(self, arg = []):
 		#if arg[0] == 'help':
 		#	help = '* Available plugins :\n'
-		#	for plugin in self.app['plugins']:
-		#		if self.app['plugins'][plugin].running == True:
+		#	for plugin in app['plugins']:
+		#		if app['plugins'][plugin].running == True:
 		#			help += '\n' + plugin + ' help'
 		#	return help
 
 		if len(arg[1]) > 1:
-			if arg[1][1] in self.app['plugins'][arg[0]].helps:
-				help = self.app['plugins'][arg[0]].helps[arg[1][1]][3]
-				help += '\n' + arg[1][1] + ' ' + self.app['plugins'][arg[0]].helps[arg[1][1]][2]
+			if arg[1][1] in app['plugins'][arg[0]].helps:
+				help = app['plugins'][arg[0]].helps[arg[1][1]][3]
+				help += '\n' + arg[1][1] + ' ' + app['plugins'][arg[0]].helps[arg[1][1]][2]
 				return help
 
 		methods = self._getPluginMethods()
@@ -133,9 +142,15 @@ class PluginThread(threading.Thread):
 		return methods
 
 	def _loadconfig(self, arg = []):
+		# manage services
+		for service, value in self.services.iteritems():
+			if self.name not in app['services'][service].services:
+				app['services'][service].services = {}
+			app['services'][service].services[self.name] = value
+
 		# add command line args to the program options + build default configuration data
 		defaultConf = '[' + self.name + ']\n'
-		group = OptionGroup(self.app['parser'], self.name.capitalize() + " Options", self.desc)
+		group = OptionGroup(app['parser'], self.name.capitalize() + " Options", self.desc)
 		if self.options.__class__ is dict:	
 			tmp = []
 			for option, value in self.options.items():
@@ -157,13 +172,13 @@ class PluginThread(threading.Thread):
 				else:
 					group.add_option('--' + self.name + '.' + option, type='str', help=help, metavar=str(value[1]))
 			self.conf[option] = value[1]
-		self.app['parser'].add_option_group(group)
+		app['parser'].add_option_group(group)
 		
 		# create default config if none
-		userConfFile = self.app['path']['conf'] + self.nameconf
+		userConfFile = app['path']['conf'] + self.nameconf
 		if not os.path.exists(userConfFile):
-			if not os.path.exists(self.app['path']['conf']):
-				os.mkdir(self.app['path']['conf'])
+			if not os.path.exists(app['path']['conf']):
+				os.mkdir(app['path']['conf'])
 			fp = open(userConfFile, 'w')
 			fp.write(defaultConf)
 			fp.close()

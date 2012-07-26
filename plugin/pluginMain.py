@@ -1,3 +1,4 @@
+from common import *
 import plugin
 import platform
 
@@ -11,25 +12,25 @@ class pluginMain(plugin.PluginThread):
 	}
 
 	def pStart(self):
-		self.app['plugins']['rpc'].start2()
+		app['plugins']['rpc'].start2()
 
 	def pStatus(self):
 		ret = ''
 		if self.running:
 			ret = "Plugin " + self.name + " running"
-		for plugin in self.app['plugins']:
-			if plugin != 'main' and self.app['plugins'][plugin].running:
-				ret += '\n' + self.app['plugins'][plugin].pStatus()
+		for plugin in app['plugins']:
+			if plugin != 'main' and app['plugins'][plugin].running:
+				ret += '\n' + app['plugins'][plugin].pStatus()
 
 		return ret
 
 	def pStop(self):
 		self.running = False
-		self.app['plugins']['rpc'].stop()
-		if self.app['debug']:	print "Plugin %s stopping" %(self.name)
-		#for plugin in self.app['plugins']:
-		#	if self.app['plugins'][plugin].running == True:
-		#		self.app['plugins'][plugin].stop()
+		app['plugins']['rpc'].stop()
+		if app['debug']:	print "Plugin %s stopping" %(self.name)
+		#for plugin in app['plugins']:
+		#	if app['plugins'][plugin].running == True:
+		#		app['plugins'][plugin].stop()
 		print "Plugin %s stopped" %(self.name)
 
 	def pRestart(self):
@@ -38,13 +39,13 @@ class pluginMain(plugin.PluginThread):
 
 	def pLoadconfig(self):
 		self.conf['start'] = 1
-		if 'debug' in self.app:
-			self.conf['debug'] = self.app['debug']
+		if 'debug' in app:
+			self.conf['debug'] = app['debug']
 
 	def pHelp(self, args = []):
 		help = '* Available plugins :'
-		for plug in self.app['plugins']:
-			if self.app['plugins'][plug].running == True:
+		for plug in app['plugins']:
+			if app['plugins'][plug].running == True:
 				help += '\n' + plug + ' help'
 		return help + '\n\n' + plugin.PluginThread.pHelp(self, args)
 

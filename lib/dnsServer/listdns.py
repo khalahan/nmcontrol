@@ -1,5 +1,6 @@
 import DNS
 import json, base64, types, traceback
+from common import *
 
 def lookup(sp, qdict) :
 	domain = qdict["domain"]
@@ -15,7 +16,7 @@ def lookup(sp, qdict) :
 	try:
 		item = json.loads(item)
 	except:
-		if self.app['debug']: traceback.print_exc()
+		if app['debug']: traceback.print_exc()
 		return
 	
 	if str(item[u"name"]) == "d/" +  host :

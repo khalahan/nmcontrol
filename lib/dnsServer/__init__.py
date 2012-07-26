@@ -23,7 +23,7 @@
 #	 FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
 #	 OTHER DEALINGS IN THE SOFTWARE.
 #
-# Modified by Khalahan in order ti include it in nmcontrol
+# Modified by Khalahan in order to include it in nmcontrol
 # Modified by sonicrules1234 (Westly Ward) in order to have it work as a dns server for all domains rather than just one
 # File originally named pymds
 import sys
@@ -36,6 +36,7 @@ import traceback
 import threading
 
 from utils import *
+from common import *
 
 class DnsError(Exception):
 	pass
@@ -43,12 +44,7 @@ class DnsError(Exception):
 class DnsServer(threading.Thread):
 	daemon = True;
 	running = True
-	app = None
 	udps = None
-
-	def __init__(self, app):
-		self.app = app
-		threading.Thread.__init__(self)
 	
 	def run(self):
 		self.serve()
@@ -57,8 +53,8 @@ class DnsServer(threading.Thread):
 		self.udps = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 		self.udps.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
 		udps = self.udps
-		listen_host = self.app['plugins']['dns'].conf['host']
-		listen_port = int(self.app['plugins']['dns'].conf['port'])
+		listen_host = app['services']['dns'].conf['host']
+		listen_port = int(app['services']['dns'].conf['port'])
 		try:
 			udps.bind((listen_host, listen_port))
 		except socket.error as e:
@@ -83,7 +79,7 @@ class DnsServer(threading.Thread):
 				question = map(lambda x: x.lower(), question)
 				found = False
 				source_module = __import__("namecoindns", globals(), locals(), [])
-				source_instance = source_module.Source(self.app)
+				source_instance = source_module.Source()
 				for config in [True]:
 					#if question[1:] == config['domain']:
 						#query = question[0]
@@ -106,7 +102,7 @@ class DnsServer(threading.Thread):
 					exception_rcode = 3
 					raise Exception("query is not for our domain: %s" % ".".join(question))
 			except:
-				if self.app['debug']: traceback.print_exc()
+				if app['debug']: traceback.print_exc()
 				if not self.running:
 					continue
 				if qid:
@@ -253,8 +249,8 @@ def format_resource(resource, question):
 #	die("Usage: %s\n" % (cmd))
 
 #config_files = {}
-listen_port = 1053
-listen_host = ''
+#listen_port = 1053
+#listen_host = ''
 
 #try:
 #	options, filenames = getopt.getopt(sys.argv[1:], "p:h:")

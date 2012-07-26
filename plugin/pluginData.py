@@ -1,3 +1,4 @@
+from common import *
 import json, StringIO, os, sys, time
 import plugin
 import rpcClient
@@ -55,19 +56,19 @@ class pluginData(plugin.PluginThread):
 		# build filter for namespaces
 		namespaces = []
 		self.conf['name_filter'] = ''
-		for plugin in self.app['plugins']:
-			if self.app['plugins'][plugin].conf['start'] == 1:
-				if hasattr(self.app['plugins'][plugin], 'namespaces'):
-					namespaces.extend(self.app['plugins'][plugin].namespaces)
+		for plugin in app['plugins']:
+			if app['plugins'][plugin].conf['start'] == 1:
+				if hasattr(app['plugins'][plugin], 'namespaces'):
+					namespaces.extend(app['plugins'][plugin].namespaces)
 		if len(namespaces) > 0:
 			self.conf['name_filter'] = '^' + '|'.join(namespaces) + '/'
 
 		# load import backend
 		if self.conf['import.mode'] == 'all':
-			if self.app['debug']: print "Plugin Data : loading...",
+			if app['debug']: print "Plugin Data : loading...",
 			sys.stdout.flush()
 			exec('backend = backendData' + self.conf['import.from'].capitalize() + '.backendData');
-			backend = backend(self.app, self.conf['import.' + self.conf['import.from']])
+			backend = backend(self.conf['import.' + self.conf['import.from']])
 			error, data = backend.getAllNames()
 			if error is None:
 				self.data = data
@@ -75,17 +76,17 @@ class pluginData(plugin.PluginThread):
 			for name in self.data:
 				if 'expires_at' not in self.data[name]:
 					self.data[name]['expires_at'] = int(time.time() + self.conf['update.freq'])
-			if self.app['debug']: print len(self.data), "names loaded"
+			if app['debug']: print len(self.data), "names loaded"
 
 		# load update backend
 		if self.conf['update.mode'] != 'none':
 			exec('backend = backendData' + self.conf['update.from'].capitalize() + '.backendData');
-			self.update = backend(self.app, self.conf['update.' + self.conf['update.from']])
+			self.update = backend(self.conf['update.' + self.conf['update.from']])
 
 		# load export backend
 		if self.conf['export.mode'] != 'none':
 			exec('backend = backendData' + self.conf['export.to'].capitalize() + '.backendData');
-			self.export = backend(self.app, self.conf['export.' + self.conf['export.to']])
+			self.export = backend(self.conf['export.' + self.conf['export.to']])
 
 	def getData(self, cmd):
 		if cmd[1][1] not in self.data or self.data[cmd[1][1]]['expires_at'] < time.time():

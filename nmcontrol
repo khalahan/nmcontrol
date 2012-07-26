@@ -1,6 +1,6 @@
 #!/usr/bin/python
 
-__version__ = '0.7'
+__version__ = '0.8'
 
 import os
 import sys
@@ -20,6 +20,10 @@ def main():
 	# add import path
 	sys.path.append(app['path']['app'] + 'lib')
 	sys.path.append(app['path']['app'] + 'plugin')
+	sys.path.append(app['path']['app'] + 'service')
+
+	import common
+	common.app = app
 
 	import console
 	(cWidth, cHeight) = console.getTerminalSize()
@@ -32,39 +36,66 @@ def main():
 		if argv in ['--debug=1','--main.debug=1']:
 			app['debug'] = True
 
-	# load plugins
+	# init modules
 	import re
 	import dircache
-	app['plugins'] = {}
-	plugins = dircache.listdir('plugin')
-	# set main plugin in first pos
-	plugins.remove('pluginMain.py')
-	plugins.insert(0, 'pluginMain.py')
-	for plugin in dircache.listdir('plugin'):
-		if re.match("^plugin.*.py$", plugin):
-			plugin = re.sub(r'\.py$', '', plugin)
-			pluginname = re.sub(r'^plugin', '', plugin).lower()
-			exec("import " + plugin)
-			try:
-				exec("p = " + plugin + "." + plugin + "(app)")
-				exec("app['plugins'][p.name] = p")
-			except AttributeError as e:
-				if app['debug']: print 'Plugin "' + plugin + '" has no', plugin + '() class'
 
+	# init vars and main plugin
+	app['services'] = {}
+	app['plugins'] = {}
+	import pluginMain
+	app['plugins']['main'] = pluginMain.pluginMain('plugin')
+
+	# init service
+	modules = dircache.listdir('service')
+	for module in modules:
+		if re.match("^service.*.py$", module):
+			module = re.sub(r'\.py$', '', module)
+			modulename = re.sub(r'^service', '', module).lower()
+			exec("import " + module)
+			try:
+				#exec("p = " + module + "." + module + "(app, 'service')")
+				#exec("app['services'][p.name] = p")
+				exec("p = " + module + "." + module)
+				app['services'][p.name] = p('service')
+				module.app = app
+			except AttributeError as e:
+				if app['debug']: print 'Service "' + module + '" has no', module + '() class'
+
+	# init plugins
+	modules = dircache.listdir('plugin')
+	modules.remove('pluginMain.py')
+	#modules.insert(0, 'pluginMain.py')
+	for module in modules: #dircache.listdir('module'):
+		if re.match("^plugin.*.py$", module):
+			module = re.sub(r'\.py$', '', module)
+			modulename = re.sub(r'^plugin', '', module).lower()
+			exec("import " + module)
+			try:
+				#exec("p = " + module + "." + module + "(app)")
+				#exec("app['plugins'][p.name] = p")
+				exec("p = " + module + "." + module)
+				app['plugins'][p.name] = p('plugin')
+				module.app = app
+			except AttributeError as e:
+				if app['debug']: print 'Plugin "' + module + '" has no', module + '() class'
 	
 	# parse command line options
 	(options, app['args']) = app['parser'].parse_args()
-	if app['debug']: print "Cmdline options:", options
 	if app['debug']: print "Cmdline args:", app['args']
+	if app['debug']: print "Cmdline options:", options
 	for option, value in vars(options).items():
 		if value is not None:
 			tmp = option.split('.')
 			if len(tmp) == 1:
 				app['plugins']['main'].conf[tmp[0]] = value
 			else:
-				plugin = tmp[0]
-				tmp.remove(plugin)
-				app['plugins'][plugin].conf['.'.join(tmp)] = value
+				module = tmp[0]
+				tmp.remove(module)
+				if module in app['plugins']:
+					app['plugins'][module].conf['.'.join(tmp)] = value
+				elif module in app['services']:
+					app['services'][module].conf['.'.join(tmp)] = value
 
 	###### Act as client : send rpc request ######
 	if len(app['args']) > 0 and app['args'][0] != 'start':
@@ -95,7 +126,13 @@ def main():
 			if app['plugins'][plugin].running is False:
 				app['plugins'][plugin].start()
 				plugins_started.append(app['plugins'][plugin].name)
-	print "Plugin started :", ', '.join(plugins_started)
+	print "Plugins started :", ', '.join(plugins_started)
+
+	#services_started = []
+	#for service in app['services']:
+	#	if app['services'][service].running:
+	#		services_started.append(app['services'][service].name)
+	#print "Services started :", ', '.join(services_started)
 
 	# stay there to catch CTRL + C and not exit when in daemon mode
 	try:
