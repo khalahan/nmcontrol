@@ -54,13 +54,14 @@ def main():
 			modulename = re.sub(r'^service', '', module).lower()
 			exec("import " + module)
 			try:
-				#exec("p = " + module + "." + module + "(app, 'service')")
-				#exec("app['services'][p.name] = p")
 				exec("p = " + module + "." + module)
 				app['services'][p.name] = p('service')
-				module.app = app
+				p.app = app
 			except AttributeError as e:
 				if app['debug']: print 'Service "' + module + '" has no', module + '() class'
+			except Exception as e:
+				print "Exception service :",
+				print e
 
 	# init plugins
 	modules = dircache.listdir('plugin')
@@ -72,13 +73,14 @@ def main():
 			modulename = re.sub(r'^plugin', '', module).lower()
 			exec("import " + module)
 			try:
-				#exec("p = " + module + "." + module + "(app)")
-				#exec("app['plugins'][p.name] = p")
 				exec("p = " + module + "." + module)
 				app['plugins'][p.name] = p('plugin')
-				module.app = app
+				p.app = app
 			except AttributeError as e:
 				if app['debug']: print 'Plugin "' + module + '" has no', module + '() class'
+			except Exception as e:
+				print "Exception module :",
+				print e
 	
 	# parse command line options
 	(options, app['args']) = app['parser'].parse_args()
