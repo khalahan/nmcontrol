@@ -57,11 +57,8 @@ def main():
 				exec("p = " + module + "." + module)
 				app['services'][p.name] = p('service')
 				p.app = app
-			except AttributeError as e:
-				if app['debug']: print 'Service "' + module + '" has no', module + '() class'
 			except Exception as e:
-				print "Exception service :",
-				print e
+				print "Exception when loading service", module, ":", e
 
 	# init plugins
 	modules = dircache.listdir('plugin')
@@ -76,11 +73,8 @@ def main():
 				exec("p = " + module + "." + module)
 				app['plugins'][p.name] = p('plugin')
 				p.app = app
-			except AttributeError as e:
-				if app['debug']: print 'Plugin "' + module + '" has no', module + '() class'
 			except Exception as e:
-				print "Exception module :",
-				print e
+				print "Exception when loading plugin", module, ":", e
 	
 	# parse command line options
 	(options, app['args']) = app['parser'].parse_args()

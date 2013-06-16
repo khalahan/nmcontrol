@@ -9,6 +9,7 @@ class serviceHTTP(plugin.PluginThread):
 		'host':		['Listen on ip', '127.0.0.2'],
 		'port':		['Listen on port', 80],
 	}
+	handlers = []
 	srv = None
 
 	def pStart(self):
@@ -28,28 +29,42 @@ class serviceHTTP(plugin.PluginThread):
 
 class MyHandler(BaseHTTPServer.BaseHTTPRequestHandler):
 
-	def do_HEAD(s):
-		s.send_response(200)
-		s.send_header("Content-type", "text/html")
-		s.end_headers()
+	def do_HEAD(req):
+		req.send_response(200)
+		req.send_header("Content-type", "text/html")
+		req.end_headers()
 
-	def do_GET(s):
+	def do_GET(req):
+		self = req.server.app['services']['http']
+
+		isHandled = False
+		for handler in self.handlers:
+			httpHandler = handler.handle(req)
+			if httpHandler is not False:
+				isHandled = httpHandler.do_GET(req)
+				if isHandled:
+					return
+
+		MyHandler.default_GET(req)
+	
+	def default_GET(req):
 		"""Respond to a GET request."""
-		host = s.headers.get('Host');
-		if host.endswith('.tor'):
-			s.server.app['plugins']['tor'].httpHandle(s)
-			return
+		#if req.headers.get('Host').endswith('.tor'):
+		#	req.server.app['plugins']['tor'].httpHandle(s)
+		#	return
 
-		s.send_response(200)
-		s.send_header("Content-type", "text/html")
-		s.end_headers()
-		s.wfile.write("<html><head><title>Title goes here.</title></head>")
-		s.wfile.write("<body><p>This is a test.</p>")
+		req.send_response(200)
+		req.send_header("Content-type", "text/html")
+		req.end_headers()
+		req.wfile.write("<html><head><title>Nmcontrol</title></head>")
+		req.wfile.write("<body><p>This is the default page of nmcontrol.</p>")
 		# If someone went to "http://something.somewhere.net/foo/bar/",
-		# then s.path equals "/foo/bar/".
-		s.wfile.write("<p>Domain is : %s</p>" % host)
-		s.wfile.write("<p>You accessed path: %s</p>" % s.path)
-		s.wfile.write("</body></html>")
+		# then req.path equals "/foo/bar/".
+		req.wfile.write("<p>Domain is : %s</p>" % req.headers.get('Host'))
+		req.wfile.write("<p>You accessed path: %s</p>" % req.path)
+		req.wfile.write("</body></html>")
+
+
 
 if __name__ == '__main__':
 	server_class = BaseHTTPServer.HTTPServer
