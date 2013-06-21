@@ -14,9 +14,12 @@ class serviceHTTP(plugin.PluginThread):
 
 	def pStart(self):
 		if self.srv is None:
-			self.srv = BaseHTTPServer.HTTPServer((self.conf['host'], int(self.conf['port'])), MyHandler)
-			self.srv.app = app
-			self.srv.serve_forever()
+			try:
+				self.srv = BaseHTTPServer.HTTPServer((self.conf['host'], int(self.conf['port'])), MyHandler)
+				self.srv.app = app
+				self.srv.serve_forever()
+			except Exception as e:
+				print "ERROR: Unable to start HTTP server (%s)" % e
 		if app['debug']: print "Service %s started" %(self.name)
 		return True
 	

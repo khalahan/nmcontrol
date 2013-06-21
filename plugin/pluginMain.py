@@ -43,9 +43,13 @@ class pluginMain(plugin.PluginThread):
 			self.conf['debug'] = app['debug']
 
 	def pHelp(self, args = []):
-		help = '* Available plugins :'
+		help = plugin.PluginThread.pHelp(self, args)
+		help += '\n\n'
+
+		help += '* Available plugins :'
 		for plug in app['plugins']:
 			if app['plugins'][plug].running == True:
 				help += '\n' + plug + ' help'
-		return help + '\n\n' + plugin.PluginThread.pHelp(self, args)
+
+		return help
 
