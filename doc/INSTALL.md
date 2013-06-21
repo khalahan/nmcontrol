@@ -18,29 +18,29 @@ Default config files will be generated on first execution in the 'conf' folder.
 
 View all command line options (take precedence over the 'conf' folder) :
 
-    nmcontrol --help
+    nmcontrol.py --help
 
 Start in background :
 
-	nmcontrol start
+	nmcontrol.py start
 
 Start in terminal :
 
-	nmcontrol --daemon=0 start
+	nmcontrol.py --daemon=0 start
 
 Start in debug mode:
 
-	nmcontrol --daemon=0 --debug=1 start
+	nmcontrol.py --daemon=0 --debug=1 start
 
 View help and rpc commands :
 
-	nmcontrol help
-	nmcontrol data help
-	nmcontrol data getValue help
+	nmcontrol.py help
+	nmcontrol.py data help
+	nmcontrol.py data getValue help
 
 Fecth data (from namecoin first, then data is cached) :
 
-	nmcontrol data getValue d/dns
+	nmcontrol.py data getValue d/dns
 
 
 Import data from file
