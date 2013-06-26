@@ -8,42 +8,23 @@ class pluginNamespaceDomain(plugin.PluginThread):
 	name = 'domain'
 	options = {
 		'start':	['Launch at startup', 1],
-		#'host':		['Listen on ip', '127.0.0.1'],
-		#'port':		['Listen on port', 53],
 		#'resolver':	['Forward standard requests to', '8.8.8.8,8.8.4.4'],
 	}
-	depends = {'services': ['dns']}
+	depends = {'services': ['dns'], 'plugin': ['data']}
 	services = {'dns':{'filter':'.bit$','cache':True}}
 	namespaces = ['d']
 
+	supportedMethods = {
+		'getIp4'	: 'ip',
+		'getIp6'	: 'ip6',
+		'getOnion': 'tor',
+		'getI2p'	: 'i2p',
+		'getFreenet': 'freenet',
+		'getFingerprint': 'fingerprint',
+	}
+
 	def pLoadconfig(self):
 		app['plugins']['dns'].handlers.append(self)
-
-	def _handle(self, request):
-		requestHandler = request[0]
-		if requestHandler != 'dns':
-			#print 'requestHandler :', requestHandler
-			return False
-		
-		requestType = request[1][0]
-		if requestType not in ['getIp4', 'getIp6', 'getOnion', 'getI2p', 'getFreenet', 'getFingerprint']:
-			#print 'requestType :', requestType
-			return False
-		
-		requestDomain = request[1][1]
-		if re.search(self.services['dns']['filter'], requestDomain):
-			return True
-
-		return False
-
-	def _process(self, request):
-		requestDomain = request[1][1]
-		print 'requestDomain :', requestDomain
-		name, host, sub = self._domainToName(requestDomain)
-		print name, host, sub
-		data = app['plugins']['data'].getValue(['data', ['getData', name]])
-		print data
-		return data
 
 	def _domainToName(self, domain):
 		if domain.count(".") >= 2 :
@@ -52,8 +33,81 @@ class pluginNamespaceDomain(plugin.PluginThread):
 		else : 
 			host = domain.split(".")[0]
 			subdomain = ""
-		return 'd/'+host, host, subdomain
+		return ['d/'+host, host, subdomain]
 
+	def _formatRequest(self, request):
+		return {
+			'handler'	: request[0],
+			'type'		: request[1][0],
+			'domain'	: request[1][1],
+		}
+
+	def _handle(self, request):
+		request = self._formatRequest(request)
+		
+		# requestHandler
+		if request['handler'] != 'dns':
+			return False
+
+		# requestType
+		if request['type'] not in self.supportedMethods:
+			return False
+
+		# requestDomain
+		if re.search(self.services['dns']['filter'], request['domain']):
+			return True
+
+		return False
+
+	def _process(self, request):
+		request = self._formatRequest(request)
+		params	= self._prepareParams(request)
+		
+		return params
+
+	def _prepareParams(self, request):
+		# get namecoin name from domain name
+		name, host, subdomain = self._domainToName(request['domain'])
+
+		# prepare list of subdomains until root
+		subdomains = subdomain.split(".")
+		subdomains.reverse()
+		tmp = []
+		flatDomains = [""]
+		for sub in subdomains:
+			tmp.append("*")
+			flatDomains.insert(0, ".".join(tmp))
+			tmp.remove("*")
+			if sub != "":
+				tmp.append(sub)
+				flatDomains.insert(0, ".".join(tmp))
+
+		# convert data to json
+		nameKey = self.supportedMethods[request['type']]
+		nameData = app['plugins']['data'].getValue(['data', ['getData', name]])
+		try:	
+			nameData = json.loads(nameData)
+		except:
+			if app['debug']: traceback.print_exc()
+			return False
+
+		return {
+			'name': name,
+			'host': host,
+			'subdomain'		: subdomain,
+			'flatDomains'	: flatDomains,
+			'nameKey'	: nameKey,
+			'nameData': nameData,
+		}
+
+	def _cleanBadRecords(self, data):
+		pass
+
+	def _getFlatZones(self, data):
+		pass
+
+	def _convertFlatToBind(self, data):
+		pass
 
 
 
