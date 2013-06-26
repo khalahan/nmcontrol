@@ -2,6 +2,7 @@ from common import *
 import plugin
 import DNS
 import json, base64, types, random, traceback
+import re
 
 class pluginNamespaceDomain(plugin.PluginThread):
 	name = 'domain'
@@ -14,6 +15,57 @@ class pluginNamespaceDomain(plugin.PluginThread):
 	depends = {'services': ['dns']}
 	services = {'dns':{'filter':'.bit$','cache':True}}
 	namespaces = ['d']
+
+	def pLoadconfig(self):
+		app['plugins']['dns'].handlers.append(self)
+
+	def _handle(self, request):
+		requestHandler = request[0]
+		if requestHandler != 'dns':
+			#print 'requestHandler :', requestHandler
+			return False
+		
+		requestType = request[1][0]
+		if requestType not in ['getIp4', 'getIp6', 'getOnion', 'getI2p', 'getFreenet', 'getFingerprint']:
+			#print 'requestType :', requestType
+			return False
+		
+		requestDomain = request[1][1]
+		if re.search(self.services['dns']['filter'], requestDomain):
+			return True
+
+		return False
+
+	def _process(self, request):
+		requestDomain = request[1][1]
+		print 'requestDomain :', requestDomain
+		name, host, sub = self._domainToName(requestDomain)
+		print name, host, sub
+		data = app['plugins']['data'].getValue(['data', ['getData', name]])
+		print data
+		return data
+
+	def _domainToName(self, domain):
+		if domain.count(".") >= 2 :
+			host = ".".join(domain.split(".")[-2:-1])
+			subdomain = ".".join(domain.split(".")[:-2])
+		else : 
+			host = domain.split(".")[0]
+			subdomain = ""
+		return 'd/'+host, host, subdomain
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 	def domainToNamespace(self, domain):
 		if domain.count(".") >= 2 :
