@@ -2,7 +2,6 @@ from common import *
 import plugin
 import DNS
 import json, base64, types, random, traceback
-import re
 
 class pluginNamespaceDomain(plugin.PluginThread):
 	name = 'domain'
@@ -10,14 +9,15 @@ class pluginNamespaceDomain(plugin.PluginThread):
 		'start':	['Launch at startup', 1],
 		#'resolver':	['Forward standard requests to', '8.8.8.8,8.8.4.4'],
 	}
-	depends = {'services': ['dns'], 'plugin': ['data']}
-	services = {'dns':{'filter':'.bit$','cache':True}}
-	namespaces = ['d']
+	depends = {'plugins': ['data', 'dns']}
+	filters = {'dns': '.bit$'}
+	handle  = ['dns']
 
+	maxNestedCalls = 10
 	supportedMethods = {
 		'getIp4'	: 'ip',
 		'getIp6'	: 'ip6',
-		'getOnion': 'tor',
+		'getOnion'	: 'tor',
 		'getI2p'	: 'i2p',
 		'getFreenet': 'freenet',
 		'getFingerprint': 'fingerprint',
@@ -26,64 +26,26 @@ class pluginNamespaceDomain(plugin.PluginThread):
 	def pLoadconfig(self):
 		app['plugins']['dns'].handlers.append(self)
 
-	def _domainToName(self, domain):
-		if domain.count(".") >= 2 :
-			host = ".".join(domain.split(".")[-2:-1])
-			subdomain = ".".join(domain.split(".")[:-2])
-		else : 
-			host = domain.split(".")[0]
-			subdomain = ""
-		return ['d/'+host, host, subdomain]
-
-	def _formatRequest(self, request):
-		return {
-			'handler'	: request[0],
-			'type'		: request[1][0],
-			'domain'	: request[1][1],
-		}
-
+	# specific handler filter
 	def _handle(self, request):
-		request = self._formatRequest(request)
-		
-		# requestHandler
-		if request['handler'] != 'dns':
-			return False
+		return True
 
-		# requestType
-		if request['type'] not in self.supportedMethods:
-			return False
+	def _prepareDomain(self, domain):
+		subdoms = domain.split(".")
+		gTLD = subdoms.pop()
+		gSLD = subdoms.pop()
 
-		# requestDomain
-		if re.search(self.services['dns']['filter'], request['domain']):
-			return True
+		return (gTLD, gSLD, subdoms, "d/" + gSLD)
 
-		return False
+	def _resolve(self, domain, recType, limit = maxNestedCalls):
+		if app['debug']: print "Resolving :", domain, recType
 
-	def _process(self, request):
-		request = self._formatRequest(request)
-		params	= self._prepareParams(request)
-		
-		return params
+		if recType in self.supportedMethods:
+			recType = self.supportedMethods[recType]
 
-	def _prepareParams(self, request):
-		# get namecoin name from domain name
-		name, host, subdomain = self._domainToName(request['domain'])
+		gTLD, gSLD, subdoms, name = self._prepareDomain(domain)
 
-		# prepare list of subdomains until root
-		subdomains = subdomain.split(".")
-		subdomains.reverse()
-		tmp = []
-		flatDomains = [""]
-		for sub in subdomains:
-			tmp.append("*")
-			flatDomains.insert(0, ".".join(tmp))
-			tmp.remove("*")
-			if sub != "":
-				tmp.append(sub)
-				flatDomains.insert(0, ".".join(tmp))
-
-		# convert data to json
-		nameKey = self.supportedMethods[request['type']]
+		# convert name value to json
 		nameData = app['plugins']['data'].getValue(['data', ['getData', name]])
 		try:	
 			nameData = json.loads(nameData)
@@ -91,30 +53,71 @@ class pluginNamespaceDomain(plugin.PluginThread):
 			if app['debug']: traceback.print_exc()
 			return False
 
-		return {
-			'name': name,
-			'host': host,
-			'subdomain'		: subdomain,
-			'flatDomains'	: flatDomains,
-			'nameKey'	: nameKey,
-			'nameData': nameData,
-		}
+		
+		# prepare list of subdomains up to root in which data will be searched
+		flatDomains = []
+		subdomains = subdoms[:]
+		subdomains.reverse()
+		tmp = []
 
-	def _cleanBadRecords(self, data):
-		pass
+		# add root zone for some record types or if no subdomains
+		if recType in ['fingerprint'] or len(subdomains) == 0:
+			flatDomains.insert(0, [""])
 
-	def _getFlatZones(self, data):
-		pass
+		# add each subdomain + "*"
+		for sub in subdomains:
+			tmp.append("*")
+			#flatDomains.insert(0, ".".join(tmp))
+			flatDomains.insert(0, tmp[:])
+			tmp.remove("*")
+			if sub != "":
+				tmp.append(sub)
+				#flatDomains.insert(0, ".".join(tmp))
+				flatDomains.insert(0, tmp[:])
 
-	def _convertFlatToBind(self, data):
-		pass
+		if app['debug']: print "Possible domains :", flatDomains
 
+		# for each possible sub-domain, search for data
+		results = []
+		for subs in flatDomains:
+			subExists = True
+			subData = nameData
+			for sub in subs:
+				if sub == '' and len(sub) == 0:
+					pass
+				elif 'map' in subData and sub in subData['map']:
+					subData = subData['map'][sub]
+				else:
+					subExists = False
+			if subExists:
+				result = self._fetchData(domain, recType, subs, subData)
+				if result is not False:
+					if app['debug']: print "* result: ", json.dumps(result)
+					return json.dumps(result)
 
+		if app['debug']: print "* result: ", json.dumps(results)
+		return json.dumps(results)
+	
+	def _fetchData(self, domain, recType, subdoms, data):
+		if app['debug']: print "Fetching", recType, "for", domain, "in sub-domain", subdoms
 
+		# record found in data
+		if recType in data:
+			return data[recType]
 
+		# legacy compatibility with ip not in an "ip" record
+		if recType == 'ip' and ( type(data) == str or type(data) is unicode ):
+			return data
 
+		return False
 
+	# remove incompatible records (ns with ip, etc)
+	#def _cleanBadRecords(self, data):
+	#	pass
 
+	# complete 'import', etc
+	#def _expandRecords(self, data):
+	#	pass
 
 
 
