@@ -15,7 +15,7 @@ class pluginDns(plugin.PluginThread):
 	handlers = []
 
 	# process each sub dns plugin to see if one is interested by the request
-	def _handle(self, request):
+	def _resolve(self, request):
 		request = {
 			'handler'   : request[0],
 			'recType'   : request[1][0],
@@ -41,20 +41,20 @@ class pluginDns(plugin.PluginThread):
 		return False
 
 	def getIp4(self, request):
-		return self._handle(request)
+		return self._resolve(request)
 
 	def getIp6(self, request):
-		return self._handle(request)
+		return self._resolve(request)
 
 	def getOnion(self, request):
-		return self._handle(request)
+		return self._resolve(request)
 
 	def getI2p(self, request):
-		return self._handle(request)
+		return self._resolve(request)
 
 	def getFreenet(self, request):
-		return self._handle(request)
+		return self._resolve(request)
 
 	def getFingerprint(self, request):
-		return self._handle(request)
+		return self._resolve(request)
 
