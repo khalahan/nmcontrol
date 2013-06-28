@@ -15,6 +15,7 @@ class PluginThread(threading.Thread):
 	mode = None
 	desc = None
 	running = False
+	threadRunning = False
 	options = {}
 	helps = {}
 	depends = {}
@@ -33,6 +34,8 @@ class PluginThread(threading.Thread):
 		threading.Thread.__init__(self)
 
 	def start(self):
+		if self.threadRunning: return
+		self.threadRunning = True
 		threading.Thread.start(self)
 
 	def run(self):
