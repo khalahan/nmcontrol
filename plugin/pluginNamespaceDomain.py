@@ -111,6 +111,10 @@ class pluginNamespaceDomain(plugin.PluginThread):
 		if recType == 'ip' and ( type(data) == str or type(data) is unicode ):
 			return data
 
+		# legacy compatibility with "" in map instead of root
+		if recType == 'ip' and 'map' in data and '' in data['map']:
+			return data['map']['']
+
 		return False
 
 	# remove incompatible records (ns with ip, etc)
