@@ -93,6 +93,8 @@ class pluginNamespaceDomain(plugin.PluginThread):
 				result = self._fetchData(domain, recType, subs, subData)
 				if result is not False:
 					if app['debug']: print "* result: ", json.dumps(result)
+					if type(result) == unicode:
+						result = [result]
 					return json.dumps(result)
 
 		if app['debug']: print "* result: ", json.dumps(results)
