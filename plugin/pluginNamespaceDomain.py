@@ -37,7 +37,7 @@ class pluginNamespaceDomain(plugin.PluginThread):
 
 		return (gTLD, gSLD, subdoms, "d/" + gSLD)
 
-	def _resolve(self, domain, recType, limit = maxNestedCalls):
+	def _resolve(self, domain, recType, result):
 		if app['debug']: print "Resolving :", domain, recType
 
 		if recType in self.supportedMethods:
@@ -53,7 +53,7 @@ class pluginNamespaceDomain(plugin.PluginThread):
 			if app['debug']: traceback.print_exc()
 			return False
 
-		
+
 		# prepare list of subdomains up to root in which data will be searched
 		flatDomains = []
 		subdomains = subdoms[:]
@@ -78,7 +78,6 @@ class pluginNamespaceDomain(plugin.PluginThread):
 		if app['debug']: print "Possible domains :", flatDomains
 
 		# for each possible sub-domain, search for data
-		results = []
 		for subs in flatDomains:
 			subExists = True
 			subData = nameData
@@ -90,30 +89,30 @@ class pluginNamespaceDomain(plugin.PluginThread):
 				else:
 					subExists = False
 			if subExists:
-				result = self._fetchData(domain, recType, subs, subData)
-				if result is not False:
+				if self._fetchData(domain, recType, subs, subData, result):
 					if app['debug']: print "* result: ", json.dumps(result)
-					if type(result) == unicode:
-						result = [result]
-					return json.dumps(result)
+					return result
 
-		if app['debug']: print "* result: ", json.dumps(results)
-		return json.dumps(results)
-	
-	def _fetchData(self, domain, recType, subdoms, data):
+		if app['debug']: print "* result: ", json.dumps(result)
+		return result
+
+	def _fetchData(self, domain, recType, subdoms, data, result):
 		if app['debug']: print "Fetching", recType, "for", domain, "in sub-domain", subdoms
 
 		# record found in data
 		if recType in data:
-			return data[recType]
+			result.add(domain, recType, data[recType])
+			return True
 
 		# legacy compatibility with ip not in an "ip" record
 		if recType == 'ip' and ( type(data) == str or type(data) is unicode ):
-			return data
+			result.add(domain, recType, data)
+			return True
 
 		# legacy compatibility with "" in map instead of root
 		if recType == 'ip' and 'map' in data and '' in data['map']:
-			return data['map']['']
+			result.add(domain, recType, data['map'][''])
+			return True
 
 		return False
 
