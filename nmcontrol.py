@@ -52,11 +52,11 @@ def main():
 		if re.match("^service.*.py$", module):
 			module = re.sub(r'\.py$', '', module)
 			modulename = re.sub(r'^service', '', module).lower()
-			exec("import " + module)
 			try:
-				exec("p = " + module + "." + module)
-				app['services'][p.name] = p('service')
-				p.app = app
+				importedModule = __import__(module)
+				importedClass = getattr(importedModule, module)
+				app['services'][importedClass.name] = importedClass('service')
+				importedClass.app = app
 			except Exception as e:
 				print "Exception when loading service", module, ":", e
 
@@ -68,14 +68,14 @@ def main():
 		if re.match("^plugin.*.py$", module):
 			module = re.sub(r'\.py$', '', module)
 			modulename = re.sub(r'^plugin', '', module).lower()
-			exec("import " + module)
 			try:
-				exec("p = " + module + "." + module)
-				app['plugins'][p.name] = p('plugin')
-				p.app = app
+				importedModule = __import__(module)
+				importedClass = getattr(importedModule, module)
+				app['plugins'][importedClass.name] = importedClass('plugin')
+				importedClass.app = app
 			except Exception as e:
 				print "Exception when loading plugin", module, ":", e
-	
+
 	# parse command line options
 	(options, app['args']) = app['parser'].parse_args()
 	if app['debug']: print "Cmdline args:", app['args']
