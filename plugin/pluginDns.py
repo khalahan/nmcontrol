@@ -38,51 +38,46 @@ class pluginDns(plugin.PluginThread):
 	handlers = []
 
 	# process each sub dns plugin to see if one is interested by the request
-	def _resolve(self, request, result):
-		request = {
-			'handler'   : request[0],
-			'recType'   : request[1][0],
-			'domain'    : request[1][1],
-		}
+	def _resolve(self, domain, recType, result):
 
 		for handler in self.handlers:
-			if request['handler'] not in handler.handle:
-				continue
+			#if request['handler'] not in handler.handle:
+			#	continue
 
-			if request['recType'] not in handler.supportedMethods:
+			if recType not in handler.supportedMethods:
 				continue
 
 			if 'dns' in handler.filters:
-				if not re.search(handler.filters['dns'], request['domain']):
+				if not re.search(handler.filters['dns'], domain):
 					continue
 
-			if not handler._handle(request):
+			if not handler._handle(domain, recType):
 				continue
 
-			handler._resolve(request['domain'], request['recType'], result)
+			handler._resolve(domain, recType, result)
 			return result
 
 		return False
 
-	def _getRecordForRPC(self, request):
+	def _getRecordForRPC(self, domain, recType):
 		result = dnsResult()
-		self._resolve(request, result)
+		self._resolve(domain, recType, result)
 		return result.toJsonForRPC()
-		
-	def getIp4(self, request):
-		return self._getRecordForRPC(request)
 
-	def getIp6(self, request):
-		return self._getRecordForRPC(request)
+	def getIp4(self, domain):
+		return self._getRecordForRPC(domain, 'getIp4')
 
-	def getOnion(self, request):
-		return self._getRecordForRPC(request)
+	def getIp6(self, domain):
+		return self._getRecordForRPC(domain, 'getIp6')
 
-	def getI2p(self, request):
-		return self._getRecordForRPC(request)
+	def getOnion(self, domain):
+		return self._getRecordForRPC(domain, 'getOnion')
 
-	def getFreenet(self, request):
-		return self._getRecordForRPC(request)
+	def getI2p(self, domain):
+		return self._getRecordForRPC(domain, 'getI2p')
 
-	def getFingerprint(self, request):
-		return self._getRecordForRPC(request)
+	def getFreenet(self, domain):
+		return self._getRecordForRPC(domain, 'getFreenet')
+
+	def getFingerprint(self, domain):
+		return self._getRecordForRPC(domain, 'getFingerprint')

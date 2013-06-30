@@ -176,7 +176,7 @@ class PluginThread(threading.Thread):
 					group.add_option('--' + self.name + '.' + option, type='str', help=help, metavar=str(value[1]))
 			self.conf[option] = value[1]
 		app['parser'].add_option_group(group)
-		
+
 		# create default config if none
 		userConfFile = app['path']['conf'] + self.nameconf
 		if not os.path.exists(userConfFile):
@@ -199,3 +199,11 @@ class PluginThread(threading.Thread):
 	def pLoadconfig(self, arg = []):
 		pass
 
+	# call a plugin method
+	def _rpc(self, method, args = [], module = None):
+		if module is not None and (type(module) == str or type(module) == unicode):
+			self = __import__(module)
+		elif module is not None:
+			self = module
+		func = getattr(self, method)
+		return func(args)

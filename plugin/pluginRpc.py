@@ -115,14 +115,16 @@ class rpcClientThread(threading.Thread):
 		return self.computeData([data['method'], data['params']])
 
 	def computeData(self, args):
-		#if app['debug']: print "Received data :", data
+		#if app['debug']: print "Received data :", args
 
 		# check for default plugin
 		if len(args[1]) == 0: args = ['main', [args[0]]]
 
 		plugin = args[0]
 		params = args[1]
+		method = params.pop(0)
 		#print "Plugin:", plugin
+		#print "Method:", method
 		#print "Params:", params
 
 		if plugin not in app['plugins']:
@@ -130,39 +132,45 @@ class rpcClientThread(threading.Thread):
 		if not app['plugins'][plugin].running and params[0] != 'start':
 			return (True, 'Plugin "' + plugin + '" not started')
 
-		if params[0] == 'start': params[0] = 'start2'
+		if method == 'start': method = 'start2'
 
 		# reply before being blocked by non threaded start
 		# TODO : recreate thread for the start command and delete when stop
-		if not app['plugins'][plugin].running and params[0] == 'start2':
+		if not app['plugins'][plugin].running and method == 'start2':
 			self.client.send('{"result":'+json.dumps({'reply':True, 'prints':'Restarting '+plugin+''})+',"error":'+json.dumps(None)+',"id":1}');
 
 		# reply before closing connection
-		if plugin == 'rpc' and params[0] == 'restart':
+		if plugin == 'rpc' and method == 'restart':
 			self.client.send('{"result":'+json.dumps({'reply':True, 'prints':'Restarting rpc'})+',"error":'+json.dumps(None)+',"id":1}');
 
-		if params[0][0] == '_':
+		# can't call private/protected methods
+		if method[0] == '_':
 			if app['debug']: print "RPC - forbidden cmd :", args
 			return (True, 'Method "' + params[0] + '" not allowed')
 
 		if 'help' in params \
-			or params[0] in app['plugins'][plugin].helps \
-			and len(params)-1 not in range(app['plugins'][plugin].helps[params[0]][0], app['plugins'][plugin].helps[params[0]][1]+1):
-			params.insert(0, 'help')
+			or method in app['plugins'][plugin].helps \
+			and len(params)-1 not in range(app['plugins'][plugin].helps[method][0], app['plugins'][plugin].helps[method][1]+1):
+			#params.insert(0, 'help')
+			params.insert(0, method)
+			method = 'help'
 
-		args[1] = params
-		if app['debug']: print "RPC - executing cmd :", args
+		if app['debug']: print "RPC - executing cmd :", plugin, method, params
 
 		# capture stdout
 		capture = StringIO.StringIO()
 		#sys.stdout = capture
-	
+
 		try:
-			method = getattr(app['plugins'][plugin], params[0])
-			result = method(args)
+			methodRpc = getattr(app['plugins'][plugin], '_rpc')
+			if len(params) == 0:
+				params = ""
+			elif len(params) == 1:
+				params = params.pop()
+			result = methodRpc(method, params)
 		except AttributeError, e:
 			if app['debug']: traceback.print_exc()
-			return (True, 'Method "' + params[0] + '" not supported by plugin "' + plugin + '"')
+			return (True, 'Method "' + method + '" not supported by plugin "' + plugin + '"')
 		except Exception, e:
 			if app['debug']: traceback.print_exc()
 			return (True, 'Exception : ' + str(e))

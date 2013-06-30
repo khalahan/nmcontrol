@@ -91,15 +91,15 @@ class pluginData(plugin.PluginThread):
 			importedClass = getattr(importedModule, 'backendData')
 			self.export = importedClass(self.conf['export.' + self.conf['export.to']])
 
-	def getData(self, cmd):
-		if cmd[1][1] not in self.data or self.data[cmd[1][1]]['expires_at'] < time.time():
-			error, data = self.update.getName(cmd[1][1])
+	def getData(self, name):
+		if name not in self.data or self.data[name]['expires_at'] < time.time():
+			error, data = self.update.getName(name)
 			if error is None:
 				data['expires_at'] = int(time.time() + self.conf['update.freq'])
-				self.data[cmd[1][1]] = data
-		
-		if cmd[1][1] in self.data:
-			return json.dumps(self.data[cmd[1][1]])
+				self.data[name] = data
+
+		if name in self.data:
+			return json.dumps(self.data[name])
 		else:
 			return False
 
