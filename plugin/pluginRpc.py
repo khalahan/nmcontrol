@@ -150,7 +150,7 @@ class rpcClientThread(threading.Thread):
 
 		if 'help' in params \
 			or method in app['plugins'][plugin].helps \
-			and len(params)-1 not in range(app['plugins'][plugin].helps[method][0], app['plugins'][plugin].helps[method][1]+1):
+			and len(params) not in range(app['plugins'][plugin].helps[method][0], app['plugins'][plugin].helps[method][1]+1):
 			#params.insert(0, 'help')
 			params.insert(0, method)
 			method = 'help'
