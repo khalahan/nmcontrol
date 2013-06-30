@@ -26,8 +26,8 @@ class pluginNamespaceDomain(plugin.PluginThread):
 	def pLoadconfig(self):
 		app['plugins']['dns'].handlers.append(self)
 
-	# specific handler filter
-	def _handle(self, request):
+	# specific filter for this handler
+	def _handle(self, domain, recType):
 		return True
 
 	def _prepareDomain(self, domain):
@@ -46,7 +46,7 @@ class pluginNamespaceDomain(plugin.PluginThread):
 		gTLD, gSLD, subdoms, name = self._prepareDomain(domain)
 
 		# convert name value to json
-		nameData = app['plugins']['data'].getValue(['data', ['getData', name]])
+		nameData = app['plugins']['data'].getValue(name)
 		try:	
 			nameData = json.loads(nameData)
 		except:
@@ -58,45 +58,40 @@ class pluginNamespaceDomain(plugin.PluginThread):
 		flatDomains = []
 		subdomains = subdoms[:]
 		subdomains.reverse()
-		tmp = []
 
 		# add root zone for some record types or if no subdomains
 		if recType in ['fingerprint'] or len(subdomains) == 0:
-			flatDomains.insert(0, [""])
+			flatDomains.append([""])
 
 		# add each subdomain + "*"
+		tmp = []
 		for sub in subdomains:
 			tmp.append("*")
-			#flatDomains.insert(0, ".".join(tmp))
-			flatDomains.insert(0, tmp[:])
+			flatDomains.append(tmp[:])
 			tmp.remove("*")
 			if sub != "":
 				tmp.append(sub)
-				#flatDomains.insert(0, ".".join(tmp))
-				flatDomains.insert(0, tmp[:])
+				flatDomains.append(tmp[:])
 
-		if app['debug']: print "Possible domains :", flatDomains
+		# complete imports, alias, translate, etc
+		for subs in flatDomains:
+			nameData = self._expandSelectedRecord(nameData, subs)
 
 		# for each possible sub-domain, search for data
+		flatDomains.reverse()
+		if app['debug']: print "Possible domains :", flatDomains
 		for subs in flatDomains:
-			subExists = True
-			subData = nameData
-			for sub in subs:
-				if sub == '' and len(sub) == 0:
-					pass
-				elif 'map' in subData and sub in subData['map']:
-					subData = subData['map'][sub]
-				else:
-					subExists = False
-			if subExists:
-				if self._fetchData(domain, recType, subs, subData, result):
+			subData = self._fetchSubTree(nameData, subs)
+			if subData is not False:
+				if self._fetchNamecoinData(domain, recType, subs, subData, result):
 					if app['debug']: print "* result: ", json.dumps(result)
 					return result
 
 		if app['debug']: print "* result: ", json.dumps(result)
 		return result
 
-	def _fetchData(self, domain, recType, subdoms, data, result):
+
+	def _fetchNamecoinData(self, domain, recType, subdoms, data, result):
 		if app['debug']: print "Fetching", recType, "for", domain, "in sub-domain", subdoms
 
 		# record found in data
@@ -120,9 +115,52 @@ class pluginNamespaceDomain(plugin.PluginThread):
 	#def _cleanBadRecords(self, data):
 	#	pass
 
-	# complete 'import', etc
-	#def _expandRecords(self, data):
-	#	pass
+	def _fetchSubTree(self, subData, subKeys):
+
+		for sub in subKeys:
+			if sub == '' and len(sub) == 0:
+				return subData
+			elif 'map' in subData and sub in subData['map']:
+				subData = subData['map'][sub]
+			else:
+				return False
+
+		return subData
+
+	# complete imports, alias, translate, etc
+	def _expandSelectedRecord(self, nameData, subDoms, limit = maxNestedCalls):
+		#print "Selected subs :", subDoms, nameData
+
+		limit -= 1
+		if limit < 0:
+			print "Too much recursive calls (%s+)" %(maxNestedCalls)
+			return nameData
+
+		subData = self._fetchSubTree(nameData, subDoms)
+
+		# sub-domain not found, nothing to do
+		if subData is False:
+			return nameData
+
+		# alias
+		if 'alias' in subData:
+			alias = subData['alias']
+			del subData['alias']
+
+			# resolve dependency
+			subAlias = alias.split(".")
+			nameData = self._expandSelectedRecord(nameData, subAlias, limit)
+
+			#print "Expanding '%s' alias to '%s' record" %(".".join(subDoms), alias)
+			aliasData = self._fetchSubTree(nameData, subAlias)
+			if aliasData is not False:
+				subData.update(aliasData)
+
+		#print "* nameData:", nameData
+		return nameData
+
+
+
 
 
 
