@@ -67,8 +67,9 @@ class pluginData(plugin.PluginThread):
 		if self.conf['import.mode'] == 'all':
 			if app['debug']: print "Plugin Data : loading...",
 			sys.stdout.flush()
-			exec('backend = backendData' + self.conf['import.from'].capitalize() + '.backendData');
-			backend = backend(self.conf['import.' + self.conf['import.from']])
+			importedModule = __import__('backendData' + self.conf['import.from'].capitalize())
+			importedClass = getattr(importedModule, 'backendData')
+			backend = importedClass(self.conf['import.' + self.conf['import.from']])
 			error, data = backend.getAllNames()
 			if error is None:
 				self.data = data
@@ -80,13 +81,15 @@ class pluginData(plugin.PluginThread):
 
 		# load update backend
 		if self.conf['update.mode'] != 'none':
-			exec('backend = backendData' + self.conf['update.from'].capitalize() + '.backendData');
-			self.update = backend(self.conf['update.' + self.conf['update.from']])
+			importedModule = __import__('backendData' + self.conf['update.from'].capitalize())
+			importedClass = getattr(importedModule, 'backendData')
+			self.update = importedClass(self.conf['update.' + self.conf['update.from']])
 
 		# load export backend
 		if self.conf['export.mode'] != 'none':
-			exec('backend = backendData' + self.conf['export.to'].capitalize() + '.backendData');
-			self.export = backend(self.conf['export.' + self.conf['export.to']])
+			importedModule = __import__('backendData' + self.conf['export.to'].capitalize())
+			importedClass = getattr(importedModule, 'backendData')
+			self.export = importedClass(self.conf['export.' + self.conf['export.to']])
 
 	def getData(self, cmd):
 		if cmd[1][1] not in self.data or self.data[cmd[1][1]]['expires_at'] < time.time():
@@ -99,7 +102,7 @@ class pluginData(plugin.PluginThread):
 			return json.dumps(self.data[cmd[1][1]])
 		else:
 			return False
-	
+
 	def getValue(self, cmd):
 		data = self.getData(cmd)
 

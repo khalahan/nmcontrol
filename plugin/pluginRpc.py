@@ -152,14 +152,14 @@ class rpcClientThread(threading.Thread):
 
 		args[1] = params
 		if app['debug']: print "RPC - executing cmd :", args
-		exec("Cmd = app['plugins'][plugin]." + params[0])
 
 		# capture stdout
 		capture = StringIO.StringIO()
 		#sys.stdout = capture
 	
 		try:
-			result = Cmd(args)
+			method = getattr(app['plugins'][plugin], params[0])
+			result = method(args)
 		except AttributeError, e:
 			if app['debug']: traceback.print_exc()
 			return (True, 'Method "' + params[0] + '" not supported by plugin "' + plugin + '"')
