@@ -148,10 +148,14 @@ class rpcClientThread(threading.Thread):
 			if app['debug']: print "RPC - forbidden cmd :", args
 			return (True, 'Method "' + params[0] + '" not allowed')
 
-		if 'help' in params \
-			or method in app['plugins'][plugin].helps \
-			and len(params) not in range(app['plugins'][plugin].helps[method][0], app['plugins'][plugin].helps[method][1]+1):
-			#params.insert(0, 'help')
+		# help asked on a method
+		if 'help' in params:
+			params.remove('help')
+			params.insert(0, method)
+			method = 'help'
+
+		# help thrown due to incorrect use of method
+		if method in app['plugins'][plugin].helps and len(params) not in range(app['plugins'][plugin].helps[method][0], app['plugins'][plugin].helps[method][1]+1):
 			params.insert(0, method)
 			method = 'help'
 
@@ -163,11 +167,7 @@ class rpcClientThread(threading.Thread):
 
 		try:
 			methodRpc = getattr(app['plugins'][plugin], '_rpc')
-			if len(params) == 0:
-				params = ""
-			elif len(params) == 1:
-				params = params.pop()
-			result = methodRpc(method, params)
+			result = methodRpc(method, *params)
 		except AttributeError, e:
 			if app['debug']: traceback.print_exc()
 			return (True, 'Method "' + method + '" not supported by plugin "' + plugin + '"')

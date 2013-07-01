@@ -97,21 +97,15 @@ class PluginThread(threading.Thread):
 		self.start2()
 		return True
 
-	def help(self, arg = []):
-		return self.pHelp(arg)
+	def help(self, *arg):
+		return self.pHelp(*arg)
 
-	def pHelp(self, arg = []):
-		#if arg[0] == 'help':
-		#	help = '* Available plugins :\n'
-		#	for plugin in app['plugins']:
-		#		if app['plugins'][plugin].running == True:
-		#			help += '\n' + plugin + ' help'
-		#	return help
-
-		if len(arg[1]) > 1:
-			if arg[1][1] in app['plugins'][arg[0]].helps:
-				help = app['plugins'][arg[0]].helps[arg[1][1]][3]
-				help += '\n' + arg[1][1] + ' ' + app['plugins'][arg[0]].helps[arg[1][1]][2]
+	def pHelp(self, *args):
+		if len(args) > 0 and type(args[0]) != list:
+			method = args[0]
+			if method in self.helps:
+				help = self.helps[method][3]
+				help += '\n' + method + ' ' + self.helps[method][2]
 				return help
 
 		methods = self._getPluginMethods()
@@ -200,10 +194,10 @@ class PluginThread(threading.Thread):
 		pass
 
 	# call a plugin method
-	def _rpc(self, method, args = [], module = None):
-		if module is not None and (type(module) == str or type(module) == unicode):
-			self = __import__(module)
-		elif module is not None:
-			self = module
+	def _rpc(self, method, *args): #, module = None):
+		#if module is not None and (type(module) == str or type(module) == unicode):
+		#	self = __import__(module)
+		#elif module is not None:
+		#	self = module
 		func = getattr(self, method)
-		return func(args)
+		return func(*args)
