@@ -46,35 +46,21 @@ def main():
 	import pluginMain
 	app['plugins']['main'] = pluginMain.pluginMain('plugin')
 
-	# init service
-	modules = dircache.listdir('service')
-	for module in modules:
-		if re.match("^service.*.py$", module):
-			module = re.sub(r'\.py$', '', module)
-			modulename = re.sub(r'^service', '', module).lower()
-			try:
-				importedModule = __import__(module)
-				importedClass = getattr(importedModule, module)
-				app['services'][importedClass.name] = importedClass('service')
-				importedClass.app = app
-			except Exception as e:
-				print "Exception when loading service", module, ":", e
-
-	# init plugins
-	modules = dircache.listdir('plugin')
-	modules.remove('pluginMain.py')
-	#modules.insert(0, 'pluginMain.py')
-	for module in modules: #dircache.listdir('module'):
-		if re.match("^plugin.*.py$", module):
-			module = re.sub(r'\.py$', '', module)
-			modulename = re.sub(r'^plugin', '', module).lower()
-			try:
-				importedModule = __import__(module)
-				importedClass = getattr(importedModule, module)
-				app['plugins'][importedClass.name] = importedClass('plugin')
-				importedClass.app = app
-			except Exception as e:
-				print "Exception when loading plugin", module, ":", e
+	# init service & plugins
+	for modType in ['service', 'plugin']:
+		modules = dircache.listdir(modType)
+		if modType == 'plugin': modules.remove('pluginMain.py')
+		for module in modules:
+			if re.match("^"+modType+".*.py$", module):
+				module = re.sub(r'\.py$', '', module)
+				modulename = re.sub(r'^'+modType, '', module).lower()
+				try:
+					importedModule = __import__(module)
+					importedClass = getattr(importedModule, module)
+					app[modType+'s'][importedClass.name] = importedClass(modType)
+					importedClass.app = app
+				except Exception as e:
+					print "Exception when loading "+modType, module, ":", e
 
 	# parse command line options
 	(options, app['args']) = app['parser'].parse_args()
