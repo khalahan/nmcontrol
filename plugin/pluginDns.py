@@ -35,6 +35,14 @@ class pluginDns(plugin.PluginThread):
 		#'port':		['Listen on port', 53],
 		#'resolver':	['Forward standard requests to', '8.8.8.8,8.8.4.4'],
 	}
+	helps = {
+		'getIp4':	[1, 1, '<domain>', 'Get a list of IPv4 for the domain'],
+		'getIp6':	[1, 1, '<domain>', 'Get a list of IPv6 for the domain'],
+		'getOnion':	[1, 1, '<domain>', 'Get the .onion for the domain'],
+		'getI2p':	[1, 1, '<domain>', 'Get the i2p config for the domain'],
+		'getFreenet':		[1, 1, '<domain>', 'Get the freenet config for the domain'],
+		'getFingerprint':	[1, 1, '<domain>', 'Get the sha1 of the certificate for the domain'],
+	}
 	handlers = []
 
 	# process each sub dns plugin to see if one is interested by the request
