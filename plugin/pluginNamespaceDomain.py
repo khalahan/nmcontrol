@@ -53,31 +53,34 @@ class pluginNamespaceDomain(plugin.PluginThread):
 			if app['debug']: traceback.print_exc()
 			return False
 
-
-		# prepare list of subdomains up to root in which data will be searched
+		# init
 		flatDomains = []
 		subdomains = subdoms[:]
 		subdomains.reverse()
+		# fingerprint and xxx records are valid for all sub-domains
+		parentIsValid = False
+		if recType in ['fingerprint']:
+			parentIsValid = True
 
-		# add root zone for some record types or if no subdomains
-		if recType in ['fingerprint'] or len(subdomains) == 0:
-			flatDomains.append([""])
-
-		# add each subdomain + "*"
-		tmp = []
-		for sub in subdomains:
-			tmp.append("*")
-			flatDomains.append(tmp[:])
-			tmp.remove("*")
-			if sub != "":
-				tmp.append(sub)
-				flatDomains.append(tmp[:])
+		# add asked domain first (ex: www.fr.dot-bit.bit)
+		flatDomains.append(subdomains[:])
+		# add each parent domain until root (ex: *.fr.dot-bit.bit, *.dot-bit.bit)
+		for sub in subdoms:
+			subdomains.pop()
+			subdomains.append("*")
+			flatDomains.append(subdomains[:])
+			subdomains.remove("*")
+			if parentIsValid: # (ex, if fingerprint: fr.dot-bit.bit, dot-bit.bit)
+				flatDomains.append(subdomains[:])
 
 		# complete imports, alias, translate, etc
+		# starting from root domain to domain which has most sub-domains
+		flatDomains.reverse()
 		for subs in flatDomains:
 			nameData = self._expandSelectedRecord(nameData, subs)
 
 		# for each possible sub-domain, search for data
+		# starting at domain which has most sub-domains up to root domain
 		flatDomains.reverse()
 		if app['debug']: print "Possible domains :", flatDomains
 		for subs in flatDomains:
