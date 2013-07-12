@@ -29,6 +29,7 @@ class pluginData(plugin.PluginThread):
 	helps = {
 		'getData':	[1, 1, '<name>', 'Get raw data of a name'],
 		'getValue':	[1, 1, '<name>', 'Get raw value of a name'],
+		'getJson':	[1, 1, '<name> <key1,key2,key3,...>', 'Get the json record for specified keys'],
 	}
 
 	data = {}
@@ -103,8 +104,8 @@ class pluginData(plugin.PluginThread):
 		else:
 			return False
 
-	def getValue(self, cmd):
-		data = self.getData(cmd)
+	def getValue(self, name):
+		data = self.getData(name)
 
 		if not data:
 			return False
@@ -114,4 +115,27 @@ class pluginData(plugin.PluginThread):
 			return data['value']
 
 		return False
+
+	def getJson(self, name, recordKeys):
+		result = ""
+		data = self.getValue(name)
+
+		if not data:
+			return json.dumps(result)
+
+		dataJson = json.loads(data)
+		dataJson = self._fetchJson(dataJson, recordKeys.split(","))
+		if dataJson is not False:
+			result = dataJson
+
+		return json.dumps(result)
+
+	def _fetchJson(self, jsonData, recordKeys):
+		for recordKey in recordKeys:
+			if recordKey not in jsonData:
+				return False
+			else:
+				jsonData = jsonData[recordKey]
+
+		return jsonData
 
