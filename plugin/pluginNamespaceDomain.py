@@ -9,7 +9,7 @@ class pluginNamespaceDomain(plugin.PluginThread):
 		'start':	['Launch at startup', 1],
 		#'resolver':	['Forward standard requests to', '8.8.8.8,8.8.4.4'],
 	}
-	depends = {'plugins': ['data', 'dns']}
+	depends = {'plugins': ['data', 'dns'],'services': ['dns']}
 	filters = {'dns': '.bit$'}
 	handle  = ['dns']
 
@@ -185,18 +185,70 @@ class pluginNamespaceDomain(plugin.PluginThread):
 	def lookup(self, qdict) :
 		#dns = app['services']['dns'].lookup()
 		# 
+		print 'inside lookup'
+		print qdict
 		name, host, subdomain = self.domainToNamespace(qdict["domain"])
-		item = app['plugins']['data'].getData(['data', ['getData', name]])
+		item = app['plugins']['data'].getData(name)
 		#rawlist = json.dumps(rawjson)
 		try:	
 			item = json.loads(item)
 		except:
 			if app['debug']: traceback.print_exc()
 			return
-			
+		
+		qtype = qdict['qtype']
+		if qtype == 1:
+			reqtype = "A"
+		if qtype == 2:
+			reqtype = "NS"
+		elif qtype == 5:
+			reqtype = "CNAME"
+		elif qtype == 16:
+			reqtype = "TXT"
+		elif qtype == 15:
+			reqtype = "MX"
+		elif qtype == 28:
+			reqtype = "AAAA"
+
+
+		#try the new API first, then fall back to map if it fails
+		if reqtype == "A":
+			#new style A request
+			answers = app['plugins']['dns'].getIp4(qdict["domain"])
+                        if answers != '[]':
+                                nameData = json.loads(answers)
+                                answers = str(nameData[0])
+				#did we get an IP address or nothing?
+				if answers.lower() == 'ns':
+					server = self._getNSServer(qdict["domain"])
+					answers = self._getIPFromNS(qdict,server)
+				if answers:
+					return answers
+		elif reqtype == "AAAA":
+			#new style AAAA request
+			answers = app['plugins']['dns'].getIp6(qdict["domain"])
+                        if answers != '[]':
+                                nameData = json.loads(answers)
+                                answers = str(nameData[0])
+				if answers.lower() == 'ns':
+					print 'zomg its an NS'
+				#did we get an IP address or nothing?
+				if answers:
+					return answers
+
+		print item
+
+		#Try old style map resolution and recursive lookup when using a NS record
 		if str(item[u"name"]) == "d/" +  host :
 			try :
-				value = json.loads(item[u"value"])
+
+				try:
+					value = json.loads(item[u"value"])
+				except:
+					if app['debug']: print "Value Result Is Not Valid JSON"
+					return
+
+				#old style resolution
 				if value.has_key(u"map") :
 					if type(value[u"map"]) is types.DictType :
 						hasdefault = False
@@ -221,11 +273,34 @@ class pluginNamespaceDomain(plugin.PluginThread):
 							if type(value[u"map"][u""]) == types.DictType :
 								return self.dnslookup(value, u"", qdict)
 							return str(value[u"map"][u""])
+
 			except :	
 				if app['debug']: traceback.print_exc()
 				return
 
 		#app['services']['dns'].lookup()
+
+	def _getNSServer(self,domain):
+		name, host, subdomain = self.domainToNamespace(domain)
+		item = app['plugins']['data'].getData(name)
+
+		try:	
+			item = json.loads(item)
+		except:
+			if app['debug']: traceback.print_exc()
+			return
+
+		try:
+			value = json.loads(item[u"value"])
+		except:
+			if app['debug']: print "Value Result Is Not Valid JSON"
+			return
+
+		server = value[u"ns"][random.randrange(0, len(value[u"ns"]))]
+		return server
+
+	def _getIPFromNS(self,qdict,server):
+		return app['services']['dns']._lookup(qdict, server)[0]['data']
 
 	def dnslookup(self, value, key, qdict) :
 		print 'dnslookup:', value, key, qdict
