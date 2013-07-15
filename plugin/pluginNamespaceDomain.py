@@ -213,9 +213,9 @@ class pluginNamespaceDomain(plugin.PluginThread):
 		if reqtype == "A":
 			#new style A request
 			answers = app['plugins']['dns'].getIp4(qdict["domain"])
-                        if answers != '[]':
-                                nameData = json.loads(answers)
-                                answers = str(nameData[0])
+			if answers != '[]':
+				nameData = json.loads(answers)
+				answers = str(nameData[0])
 				#did we get an IP address or nothing?
 				if answers.lower() == 'ns':
 					server = self._getNSServer(qdict["domain"])
@@ -225,9 +225,9 @@ class pluginNamespaceDomain(plugin.PluginThread):
 		elif reqtype == "AAAA":
 			#new style AAAA request
 			answers = app['plugins']['dns'].getIp6(qdict["domain"])
-                        if answers != '[]':
-                                nameData = json.loads(answers)
-                                answers = str(nameData[0])
+			if answers != '[]':
+				nameData = json.loads(answers)
+				answers = str(nameData[0])
 				#this probably doesnt work for ipv6...
 				if answers.lower() == 'ns':
 					server = self._getNSServer(qdict["domain"])
