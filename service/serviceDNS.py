@@ -31,13 +31,17 @@ class serviceDNS(plugin.PluginThread):
 
 	def lookup(self, qdict) :
 		if app['debug']: print 'Lookup:', qdict
-		for service, value in self.services.iteritems():
-			if re.search(value['filter'], qdict["domain"]):
-				return app['plugins'][service].lookup(qdict)
-
+		#for service, value in self.services.iteritems():
+		#	if re.search(value['filter'], qdict["domain"]):
+		#		return app['plugins'][service].lookup(qdict)
+		if qdict["domain"].endswith(".bit"):
+			return app['plugins']['domain'].lookup(qdict)
 		return self._lookup(qdict)
 
 	def _lookup(self, qdict, server = ''):
+		#make sure the server string is a string and not unicode, otherwise the DNS library fails to resolve it
+		server = str(server)
+		
 		if server == '':
 			server = self.servers[random.randrange(0, len(self.servers)-1)]
 
