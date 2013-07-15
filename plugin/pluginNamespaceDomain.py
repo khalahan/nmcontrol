@@ -185,8 +185,6 @@ class pluginNamespaceDomain(plugin.PluginThread):
 	def lookup(self, qdict) :
 		#dns = app['services']['dns'].lookup()
 		# 
-		print 'inside lookup'
-		print qdict
 		name, host, subdomain = self.domainToNamespace(qdict["domain"])
 		item = app['plugins']['data'].getData(name)
 		#rawlist = json.dumps(rawjson)
@@ -230,8 +228,10 @@ class pluginNamespaceDomain(plugin.PluginThread):
                         if answers != '[]':
                                 nameData = json.loads(answers)
                                 answers = str(nameData[0])
+				#this probably doesnt work for ipv6...
 				if answers.lower() == 'ns':
-					print 'zomg its an NS'
+					server = self._getNSServer(qdict["domain"])
+					answers = self._getIPFromNS(qdict,server)
 				#did we get an IP address or nothing?
 				if answers:
 					return answers
