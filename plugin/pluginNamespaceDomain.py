@@ -10,7 +10,7 @@ class pluginNamespaceDomain(plugin.PluginThread):
 		#'resolver':	['Forward standard requests to', '8.8.8.8,8.8.4.4'],
 	}
 	depends = {'plugins': ['data', 'dns'],'services': ['dns']}
-	filters = {'dns': '.bit$'}
+	filters = {'dns': '.bit$|.tor$'}
 	handle  = ['dns']
 
 	maxNestedCalls = 10
@@ -170,38 +170,16 @@ class pluginNamespaceDomain(plugin.PluginThread):
 		#print "* nameData:", nameData
 		return nameData
 
-
-
-
-
-
-
-
-
-	def domainToNamespace(self, domain):
-		if domain.count(".") >= 2 :
-			host = ".".join(domain.split(".")[-2:-1])
-			subdomain = ".".join(domain.split(".")[:-2])
-		else : 
-			host = domain.split(".")[0]
-			subdomain = ""
-		return 'd/'+host, host, subdomain
-	
-	def namespaceToDomain(self, name):
-		pass
-
 	def lookup(self, qdict) :
-		#dns = app['services']['dns'].lookup()
-		# 
-		name, host, subdomain = self.domainToNamespace(qdict["domain"])
-		item = app['plugins']['data'].getData(name)
-		#rawlist = json.dumps(rawjson)
-		try:	
-			item = json.loads(item)
-		except:
-			if app['debug']: traceback.print_exc()
-			return
 		
+		if qdict["domain"].endswith(".bit"):
+			return self._bitLookup(qdict)
+
+		if qdict["domain"].endswith(".tor"):
+			return self._torLookup(qdict)
+
+
+	def _bitLookup(self,qdict):
 		qtype = qdict['qtype']
 		if qtype == 1:
 			reqtype = "A"
@@ -238,4 +216,18 @@ class pluginNamespaceDomain(plugin.PluginThread):
 			if answers:
 				return answers
 			return '[]'
+		return '[]'
+
+	def _torLookup(self,qdict):
+		#if TXT record
+		if qdict['qtype'] == 16:
+			answers = app['plugins']['dns'].getOnion(qdict["domain"])
+			if answers != '[]':
+				nameData = json.loads(answers)
+				answers = str(nameData[0])
+			#did we get an IP address or nothing?
+			if answers:
+				return answers
+			return '[]'
+		return '[]'
 
