@@ -111,7 +111,7 @@ class Source(object):
 				elif response["type"] == 2 or response["type"] == 5:
 					tempresults["rdata"] = labels2str(response["data"].split("."))
 				elif response["type"] == 16 :
-					tempresults["rdata"] = label2str(response["data"])
+					tempresults["rdata"] = labels2str(response["data"])
 				elif response["type"] == 15 :
 					tempresult = struct.pack("!H", response["data"][0])
 					tempresult += labels2str(response["data"][1].split("."))
@@ -147,7 +147,7 @@ class Source(object):
 				elif response["type"] == 2 or response["type"] == 5:
 					tempresults["rdata"] = labels2str(response["data"].split("."))
 				elif response["type"] == 16 :
-					tempresults["rdata"] = label2str(response["data"])
+					tempresults["rdata"] = labels2str(response["data"])
 				elif response["type"] == 15 :
 					tempresult = struct.pack("!H", response["data"][0])
 					tempresult += labels2str(response["data"][1].split("."))
