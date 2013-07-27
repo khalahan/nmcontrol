@@ -221,21 +221,21 @@ class pluginNamespaceDomain(plugin.PluginThread):
 		if reqtype == "A":
 			#new style A request
 			answers = app['plugins']['dns'].getIp4(qdict["domain"])
-				if answers != '[]':
-					nameData = json.loads(answers)
-					answers = str(nameData[0])
-				#did we get an IP address or nothing?
-				if answers:
-					return answers
-				return '[]'
+			if answers != '[]':
+				nameData = json.loads(answers)
+				answers = str(nameData[0])
+			#did we get an IP address or nothing?
+			if answers:
+				return answers
+			return '[]'
 		elif reqtype == "AAAA":
 			#new style AAAA request
 			answers = app['plugins']['dns'].getIp6(qdict["domain"])
-				if answers != '[]':
-					nameData = json.loads(answers)
-					answers = str(nameData[0])
-				#did we get an IP address or nothing?
-				if answers:
-					return answers
-				return '[]'
+			if answers != '[]':
+				nameData = json.loads(answers)
+				answers = str(nameData[0])
+			#did we get an IP address or nothing?
+			if answers:
+				return answers
+			return '[]'
 
