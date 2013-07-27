@@ -189,8 +189,7 @@ def format_question(question, qtype, qclass):
 def format_resource(resource, question):
 	r = ''
 	r += labels2str(question)
-	r += struct.pack("!HHI", resource['qtype'], resource['qclass'], resource['ttl'])
-	r += struct.pack("!H", len(resource['rdata'] ))
+	r += struct.pack("!HHIH", resource['qtype'], resource['qclass'], resource['ttl'], len(resource['rdata']))
 	r += resource['rdata']
 	return r
 
