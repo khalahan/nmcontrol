@@ -124,8 +124,6 @@ class Source(object):
 			if type(response) == types.StringType :
 				if self.isIP(response) :
 					return 0, [{"qtype":1, "qclass":qclass, "ttl":300, "rdata":struct.pack("!I", ipstr2int(response))}]
-				if response.endswith(".onion"):
-					return 0, [{"qtype":16, "qclass":qclass, "ttl":300, "rdata":response}]
 			return 3, []
 			#if query not in self._answers:
 				#return 3, []

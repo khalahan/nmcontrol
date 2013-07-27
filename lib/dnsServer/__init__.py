@@ -190,11 +190,7 @@ def format_resource(resource, question):
 	r = ''
 	r += labels2str(question)
 	r += struct.pack("!HHI", resource['qtype'], resource['qclass'], resource['ttl'])
-	# change the format of the response if its a TXT response, otherwise assume it is an A record
-	if resource['qtype'] == 16:
-		r += struct.pack("!HB", len(resource['rdata']) + 1 , len(resource['rdata'] ))
-	else:
-		r += struct.pack("!H", len(resource['rdata'] ))
+	r += struct.pack("!H", len(resource['rdata'] ))
 	r += resource['rdata']
 	return r
 
