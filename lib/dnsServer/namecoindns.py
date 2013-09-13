@@ -111,7 +111,7 @@ class Source(object):
 				elif response["type"] == 2 or response["type"] == 5:
 					tempresults["rdata"] = labels2str(response["data"].split("."))
 				elif response["type"] == 16 :
-					tempresults["rdata"] = label2str(response["data"])
+					tempresults["rdata"] = labels2str(response["data"])
 				elif response["type"] == 15 :
 					tempresult = struct.pack("!H", response["data"][0])
 					tempresult += labels2str(response["data"][1].split("."))
@@ -121,7 +121,7 @@ class Source(object):
 				#else : return 3, []
 				results.append(tempresults)
 				return 0, results
-			if type(response) == types.StringType :				
+			if type(response) == types.StringType :
 				if self.isIP(response) :
 					return 0, [{"qtype":1, "qclass":qclass, "ttl":300, "rdata":struct.pack("!I", ipstr2int(response))}]
 			return 3, []
@@ -147,7 +147,7 @@ class Source(object):
 				elif response["type"] == 2 or response["type"] == 5:
 					tempresults["rdata"] = labels2str(response["data"].split("."))
 				elif response["type"] == 16 :
-					tempresults["rdata"] = label2str(response["data"])
+					tempresults["rdata"] = labels2str(response["data"])
 				elif response["type"] == 15 :
 					tempresult = struct.pack("!H", response["data"][0])
 					tempresult += labels2str(response["data"][1].split("."))

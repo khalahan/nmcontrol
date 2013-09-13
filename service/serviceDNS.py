@@ -34,17 +34,23 @@ class serviceDNS(plugin.PluginThread):
 		#for service, value in self.services.iteritems():
 		#	if re.search(value['filter'], qdict["domain"]):
 		#		return app['plugins'][service].lookup(qdict)
-		if qdict["domain"].endswith(".bit"):
+		if qdict["domain"].endswith(".bit") or qdict["domain"].endswith(".tor"):
 			return app['plugins']['domain'].lookup(qdict)
-		return self._lookup(qdict)
+		return self._lookup(qdict["domain"],qdict["qtype"])
 
-	def _lookup(self, qdict, server = ''):
+	def _lookup(self, domain, qtype=1, server = ''):
 		#make sure the server string is a string and not unicode, otherwise the DNS library fails to resolve it
 		server = str(server)
-		
+
 		if server == '':
 			server = self.servers[random.randrange(0, len(self.servers)-1)]
 
+		if app['debug']: print "Fetching IP Address for: ", domain, "with NS Server:", server
+
 		x = DNS.Request(server=server)
-		return x.req(name=qdict["domain"], qtype=qdict["qtype"]).answers
+		result = x.req(name=domain, qtype=qtype).answers
+
+		if app['debug']: print "* result: ", result
+
+		return result
 
