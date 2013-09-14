@@ -11,6 +11,7 @@ class serviceDNS(plugin.PluginThread):
 		'host':		['Listen on ip', '127.0.0.1'],
 		'port':		['Listen on port', 53],
 		'resolver':	['Forward standard requests to', '8.8.8.8,8.8.4.4'],
+		'disable_standard_lookups': ['Disable lookups for standard domains','0']
 	}
 	srv = None
 
@@ -36,6 +37,8 @@ class serviceDNS(plugin.PluginThread):
 		#		return app['plugins'][service].lookup(qdict)
 		if qdict["domain"].endswith(".bit") or qdict["domain"].endswith(".tor"):
 			return app['plugins']['domain'].lookup(qdict)
+		if self.conf['disable_standard_lookups'] == '1':
+			return []
 		return self._lookup(qdict["domain"],qdict["qtype"])
 
 	def _lookup(self, domain, qtype=1, server = ''):

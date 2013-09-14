@@ -31,6 +31,7 @@ class pluginDns(plugin.PluginThread):
 	name = 'dns'
 	options = {
 		'start':	['Launch at startup', 1],
+		'disable_ns_lookups':	['Disable remote lookups for NS records','0'],
 		#'host':		['Listen on ip', '127.0.0.1'],
 		#'port':		['Listen on port', 53],
 		#'resolver':	['Forward standard requests to', '8.8.8.8,8.8.4.4'],
@@ -76,16 +77,18 @@ class pluginDns(plugin.PluginThread):
 	def getIp4(self, domain):
 		result = self._getRecordForRPC(domain, 'getIp4')
 		# if we got an NS record because there is no IP we need to ask the NS server for the IP
-		if result == '["ns"]':
-			result = '["'+self._getIPv4FromNS(domain)+'"]'
+		if self.conf['disable_ns_lookups'] != '1':
+			if result == '["ns"]':
+				result = '["'+self._getIPv4FromNS(domain)+'"]'
 
 		return result
 
 	def getIp6(self, domain):
 		result = self._getRecordForRPC(domain, 'getIp6')
 		# if we got an NS record because there is no IP we need to ask the NS server for the IP
-		if result == '["ns"]':
-			result = '["'+self._getIPv6FromNS(domain)+'"]'
+		if self.conf['disable_ns_lookups'] != '1':
+			if result == '["ns"]':
+				result = '["'+self._getIPv6FromNS(domain)+'"]'
 
 		return result
 
