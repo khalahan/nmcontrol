@@ -21,6 +21,7 @@ class pluginNamespaceDomain(plugin.PluginThread):
 		'getI2p'	: 'i2p',
 		'getFreenet'	: 'freenet',
 		'getFingerprint': 'fingerprint',
+		'getTls': 'tls',
 		'getNS'		: 'ns',
 	}
 
@@ -97,6 +98,11 @@ class pluginNamespaceDomain(plugin.PluginThread):
 
 	def _fetchNamecoinData(self, domain, recType, subdoms, data, result):
 		if app['debug']: print "Fetching", recType, "for", domain, "in sub-domain", subdoms
+
+		if recType == 'tls':
+			if recType in data:
+				result.add_raw(domain, recType, data[recType])
+				return
 
 		# record found in data
 		if recType in data:
@@ -192,6 +198,8 @@ class pluginNamespaceDomain(plugin.PluginThread):
 			reqtype = "MX"
 		elif qtype == 28:
 			reqtype = "AAAA"
+		elif qtype == 52:
+			reqtype = "TLSA"
 
 
 		#try the new API first, then fall back to map if it fails
@@ -214,7 +222,13 @@ class pluginNamespaceDomain(plugin.PluginThread):
 				#did we get an IP address or nothing?
 				if answers:
 					return answers
-				
+			return
+		elif reqtype == "TLSA":
+			port = qdict["domain"].split(".")[0][1:]
+			protocol = qdict["domain"].split(".")[1][1:]
+			answers = app['plugins']['dns'].getTlsFingerprint(qdict["domain"], protocol, port)
+			answers = json.loads(answers)
+			return {"type":52, "class":1, "ttl":300, "data":answers}
 		return
 
 	def _torLookup(self,qdict):

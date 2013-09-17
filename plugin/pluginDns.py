@@ -17,13 +17,27 @@ class dnsResult(dict):
 
 		self[recType].extend(record)
 
+	def add_raw(self, domain, recType, record):
+
+		self[recType] = record
+
+		#if type(record) == unicode or type(record) == str:
+		#	record = [record]
+
+		#print record
+
+		#if not recType in self:
+		#	self[recType] = []
+
+		#self[recType].extend(dict(record))
+		#print self
+
 	def toJsonForRPC(self):
 
 		result = []
 		for key in self:
-			for value in self[key]:
-				result.append(value)
-
+			result = self[key]
+		
 		return json.dumps(result)
 
 
@@ -42,7 +56,8 @@ class pluginDns(plugin.PluginThread):
 		'getOnion':	[1, 1, '<domain>', 'Get the .onion for the domain'],
 		'getI2p':	[1, 1, '<domain>', 'Get the i2p config for the domain'],
 		'getFreenet':		[1, 1, '<domain>', 'Get the freenet config for the domain'],
-		'getFingerprint':	[1, 1, '<domain>', 'Get the sha1 of the certificate for the domain'],
+		'getFingerprint':	[1, 1, '<domain>', 'Get the sha1 of the certificate for the domain (deprecated)'],
+		'getTlsFingerprint': [1, 3, '<domain> <protocol> <port>', 'Get the TLS information for the domain'],
 		'getNS':	[1, 1, '<domain>', 'Get a list of NS for the domain'],
 	}
 	handlers = []
@@ -104,8 +119,33 @@ class pluginDns(plugin.PluginThread):
 	def getFingerprint(self, domain):
 		return self._getRecordForRPC(domain, 'getFingerprint')
 
+	def getTlsFingerprint(self, domain, protocol, port):
+		#return tls data for the queried FQDN, or the first includeSubdomain tls record
+		result = self._getTls(domain)
+
+		try:	
+			tls = json.loads(result)
+		except:
+			if app['debug']: traceback.print_exc()
+			return
+
+		try:
+			answer = tls[protocol][port]
+		except:
+			try:
+				answer = self._getSubDomainTlsFingerprint(domain, protocol, port)[protocol][port]
+			except:
+				return []
+
+		result = dnsResult()
+		result.add(domain, 'getTlsFingerprint' , answer)
+		return result.toJsonForRPC()
+
 	def getNS(self, domain):
 		return self._getRecordForRPC(domain, 'getNS')
+
+	def _getTls(self, domain):
+		return self._getRecordForRPC(domain, 'getTls')		
 
 	def _getNSServer(self,domain):
 		item = self.getNS(domain)
@@ -129,3 +169,22 @@ class pluginDns(plugin.PluginThread):
 		server = self._getNSServer(domain)
 		return app['services']['dns']._lookup(domain, 28 , server)[0]['data']
 
+	def _getSubDomainTlsFingerprint(self,domain,protocol,port):
+		#Get the first subdomain tls fingerprint that has the includeSubdomain flag turned on
+		for i in xrange(0,domain.count('.')):
+
+			sub_domain = domain.split(".",i)[i]
+		
+			result = self._getTls(sub_domain)
+
+			try:	
+				tls = json.loads(result)
+			except:
+				if app['debug']: traceback.print_exc()
+				return
+
+			try:
+				if( tls[protocol][port][0][2] == 1):
+					return tls
+			except:
+				continue

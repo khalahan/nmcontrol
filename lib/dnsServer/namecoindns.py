@@ -93,6 +93,8 @@ class Source(object):
 		elif qtype == 28:
 			#answer = struct.pack("!I", ipstr2int(value))
 			reqtype = "AAAA"
+		elif qtype == 52:
+			reqtype = "TLSA"
 		else : reqtype = None
 		answers = app['services']['dns'].lookup({"query":query, "domain":domain, "qtype":qtype, "qclass":qclass, "src_addr":src_addr})
 		#print 'domain:', domain
@@ -118,6 +120,11 @@ class Source(object):
 					tempresults["rdata"] = tempresult
 				elif response["type"] == 28 :
 					tempresults["rdata"] = response["data"]
+				elif response["type"] == 52 :
+					tempresult = '\x03\x00'
+					tempresult += chr(int(response["data"][0][0]))
+					tempresult += bytearray.fromhex(response["data"][0][1])
+					tempresults["rdata"] = tempresult
 				#else : return 3, []
 				results.append(tempresults)
 				return 0, results
@@ -156,6 +163,8 @@ class Source(object):
 					if answers == [] :
 						return self.get_response(query, domain, 5, qclass, src_addr)
 					#tempresults["rdata"] = struct.pack("!I", ipstr2int(response["data"]))
+					tempresults["rdata"] = response["data"]
+				elif response["type"] == 52 :
 					tempresults["rdata"] = response["data"]
 				#else : return 3, []
 				results.append(tempresults)
