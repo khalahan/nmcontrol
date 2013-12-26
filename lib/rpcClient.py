@@ -27,10 +27,10 @@ class rpcClient:
 			self.s.connect((self.conf['host'], int(self.conf['port'])))
 			#print '* Sending :', '\n', data
 			self.s.sendall(data)
-			result = ''
+			result = ''.decode('iso-8859-1')
 			while True:
 				try:
-					tmp = self.s.recv(self.size)
+					tmp = self.s.recv(self.size).decode('iso-8859-1')
 				except socket.timeout as e:
 					break
 				self.s.settimeout(time.time() - start + 2)
