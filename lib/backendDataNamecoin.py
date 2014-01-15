@@ -19,8 +19,8 @@ class backendData():
 		user = ''
 		password = ''
 
-		if conf.has_option('r', 'rpchost'):
-			host = conf.get('r', 'rpchost')
+		if conf.has_option('r', 'rpcconnect'):
+			host = conf.get('r', 'rpcconnect')
 		if conf.has_option('r', 'rpcport'):
 			port = conf.get('r', 'rpcport')
 		if conf.has_option('r', 'rpcuser'):
