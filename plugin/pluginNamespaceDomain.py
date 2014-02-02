@@ -76,6 +76,9 @@ class pluginNamespaceDomain(plugin.PluginThread):
 			if parentIsValid: # (ex, if fingerprint: fr.dot-bit.bit, dot-bit.bit)
 				flatDomains.append(subdomains[:])
 
+                # handle global imports (not on subdomain level)
+                nameData = self._processImport(nameData)
+
 		# complete imports, alias, translate, etc
 		# starting from root domain to domain which has most sub-domains
 		flatDomains.reverse()
@@ -149,6 +152,36 @@ class pluginNamespaceDomain(plugin.PluginThread):
 				return False
 
 		return subData
+
+        # process "import" on the given JSON object
+        # TODO: Make global utility routine not only for domains?
+        def _processImport(self, data, limit = maxNestedCalls):
+                if app['debug']:
+                        print "Processing import for", data
+
+                if limit < 1:
+                        print "Too many recursive calls."
+                        return data
+
+                if 'import' in data:
+                        impName = data['import']
+                        if app['debug']:
+                                print "Recursing import on", impName
+
+                        impData = app['plugins']['data'].getValue(impName)
+                        try:	
+                                impData = json.loads(impData)
+                        except:
+                                if app['debug']: traceback.print_exc()
+                                # TODO: Maybe return data here instead of fail?
+                                return False
+
+                        impData = self._processImport(impData, limit - 1)
+                        for key in impData:
+                                if not key in data:
+                                        data[key] = impData[key]
+
+                return data
 
 	# complete imports, alias, translate, etc
 	def _expandSelectedRecord(self, nameData, subDoms, limit = maxNestedCalls):
