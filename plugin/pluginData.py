@@ -29,8 +29,13 @@ class pluginData(plugin.PluginThread):
 	helps = {
 		'getData':	[1, 1, '<name>', 'Get raw data of a name'],
 		'getValue':	[1, 1, '<name>', 'Get raw value of a name'],
+		'getValueProcessed':
+				[1, 1, '<name>', 'Get JSON value with imports processed'],
 		'getJson':	[1, 1, '<name> <key1,key2,key3,...>', 'Get the json record for specified keys'],
 	}
+
+	# Maximum recursion depth for processing "import" keys.
+	maxNestedCalls = 10
 
 	data = {}
 	update = None
@@ -116,6 +121,19 @@ class pluginData(plugin.PluginThread):
 
 		return False
 
+	def getValueProcessed(self, name):
+		data = self.getValue(name)
+		try:	
+			data = json.loads(data)
+		except:
+			if app['debug']: traceback.print_exc()
+			return False
+
+		# handle imports
+		data = self._processImport(data)
+
+		return data
+
 	def getJson(self, name, recordKeys):
 		result = ""
 		data = self.getValue(name)
@@ -138,4 +156,41 @@ class pluginData(plugin.PluginThread):
 				jsonData = jsonData[recordKey]
 
 		return jsonData
+
+	# process "import" on the given JSON object
+	def _processImport(self, data, limit = maxNestedCalls):
+		if app['debug']:
+			print "Processing import for", data
+
+		if limit < 1:
+			print "Too many recursive calls."
+			return data
+
+		if 'import' in data:
+			impName = data['import']
+			if app['debug']:
+				print "Recursing import on", impName
+
+			# TODO: Maybe rewrite to use an internal, more
+			# general 'getValueProcessed' routine here instead
+			# of recursing only on import.  In case that
+			# 'processing' of a value is more than just import,
+			# we possibly want that in the future.
+			impData = self.getValue(impName)
+			try:	
+				impData = json.loads(impData)
+			except:
+				if app['debug']: traceback.print_exc()
+				# XXX: Maybe return data here instead of fail?
+				return False
+
+			impData = self._processImport(impData, limit - 1)
+			for key in impData:
+				if not key in data:
+					data[key] = impData[key]
+
+			del data['import']
+
+		return data
+
 
