@@ -48,13 +48,8 @@ class pluginNamespaceDomain(plugin.PluginThread):
 
 		gTLD, gSLD, subdoms, name = self._prepareDomain(domain)
 
-		# convert name value to json
-		nameData = app['plugins']['data'].getValue(name)
-		try:	
-			nameData = json.loads(nameData)
-		except:
-			if app['debug']: traceback.print_exc()
-			return False
+                # get value with imports already processed and already as JSON
+		nameData = app['plugins']['data'].getValueProcessed(name)
 
 		# init
 		flatDomains = []
